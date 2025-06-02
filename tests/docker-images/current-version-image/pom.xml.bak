@@ -46,7 +46,6 @@
       <build>
         <plugins>
           <!-- build cpp client, copy the wheel file and then build docker image -->
-<!--
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
@@ -65,7 +64,6 @@
               </execution>
             </executions>
           </plugin>
--->
           <!-- this task is used for copy docker scripts & python wheel file to build docker image -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>

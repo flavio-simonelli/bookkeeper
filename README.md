@@ -13,6 +13,12 @@ It is suitable for being used in following scenarios:
 - Offset/Cursor Store, e.g. Apache Pulsar.
 - Object/Blob Store, e.g. storing state machine snapshots.
 
+## Cosa io ho fatto
+1. Eliminazione di tutti i test:
+	- ``find . -type d -path "*/src/test" -exec rm -rf {} +``: elimina tuto il contenuto delle cartelle /src/test
+	- ``find . -type d -path "*/src/test/resources" -exec rm -rf {} +``: elimina anche i test delle risorse XML, cinfig
+	- commentato tutti i blocchi ``<plugin></plugin>`` in cui si specifica il plugin ``exec-maven-plugin``
+
 ## Get Started
 
 * Checkout the project [website](https://bookkeeper.apache.org/).

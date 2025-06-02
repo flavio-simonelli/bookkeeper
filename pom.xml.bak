@@ -1189,13 +1189,11 @@
         <artifactId>download-maven-plugin</artifactId>
         <version>${download-maven-plugin.version}</version>
       </plugin>
-<!--
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>${exec-maven-plugin.version}</version>
       </plugin>
--->
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
