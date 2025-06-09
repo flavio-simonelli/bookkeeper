@@ -72,6 +72,8 @@
     <module>tests</module>
     <module>native-io</module>
     <module>testtools</module>
+    <!-- add module for coverage report -->
+    <module>coverage-report</module>
   </modules>
   <mailingLists>
     <mailingList>
@@ -106,6 +108,8 @@
     </developer>
   </developers>
   <properties>
+    <!-- add unnecessary sonarqube properties for found the report -->
+    <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -214,6 +218,12 @@
   <!-- dependency definitions -->
   <dependencyManagement>
     <dependencies>
+      <!-- New test dependencies added -->
+      <dependency>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.13</version>
+      </dependency>
       <!-- provided dependencies -->
       <dependency>
         <groupId>com.github.spotbugs</groupId>
@@ -934,6 +944,18 @@
     </extensions>
     <pluginManagement>
       <plugins>
+        <!-- plugin for jacoco code coverage integration -->
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <executions>
+            <execution>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
