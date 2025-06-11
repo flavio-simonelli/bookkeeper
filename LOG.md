@@ -11,6 +11,7 @@ Effettuato il run tramite il comando: "mvn clean verify" con skd21 e il build è
    - Aggiunta del plugin Jacoco nel file pom.xml del progetto.
    - Creazione del modulo "coverage-report" per la generazione del report di copertura. Modificato il file POM per mettere il build di jacoco come fase di build.
    - Aggiunta nel file pom.xml parent per una possibile configurazione di sonarcube (non è necessario)
+   - rimosso il plugin surefire nel file pom parent.
 5. Ho scelto come prima classe di applicare il testing alla classe che ha tutte le funzionalità del bookies.
    Questa classe è la "BookieImpl" che si trova nel modulo "bookkeeper-server".
    La seconda classe verrà scelta in base al tempo necessario per completare i test della prima. O una classe comunque vicina a questa.
