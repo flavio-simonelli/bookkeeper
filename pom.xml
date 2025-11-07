@@ -209,6 +209,8 @@
     <otel.semconv.version>1.29.0-alpha</otel.semconv.version>
     <UBUNTU_MIRROR>http://archive.ubuntu.com/ubuntu/</UBUNTU_MIRROR>
     <UBUNTU_SECURITY_MIRROR>http://security.ubuntu.com/ubuntu/</UBUNTU_SECURITY_MIRROR>
+
+    <sonar.organization>flavio-simonelli</sonar.organization>
   </properties>
 
   <!-- dependency definitions -->
