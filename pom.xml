@@ -210,6 +210,8 @@
     <UBUNTU_MIRROR>http://archive.ubuntu.com/ubuntu/</UBUNTU_MIRROR>
     <UBUNTU_SECURITY_MIRROR>http://security.ubuntu.com/ubuntu/</UBUNTU_SECURITY_MIRROR>
 
+    <!-- add by Flavio -->
+      <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <sonar.organization>flavio-simonelli</sonar.organization>
   </properties>
 
