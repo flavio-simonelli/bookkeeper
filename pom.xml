@@ -211,7 +211,8 @@
     <UBUNTU_SECURITY_MIRROR>http://security.ubuntu.com/ubuntu/</UBUNTU_SECURITY_MIRROR>
 
     <!-- add by Flavio -->
-      <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <!--<randoop.version>4.3.4</randoop.version>-->
     <sonar.organization>flavio-simonelli</sonar.organization>
   </properties>
 
@@ -828,6 +829,15 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- Add by Flavio -->
+        <!--
+      <dependency>
+        <groupId>randoop</groupId>
+        <artifactId>randoop</artifactId>
+        <version>${randoop.version}</version>
+        <scope>test</scope>
+      </dependency>
+        -->
 
       <!-- benchmark dependencies -->
       <dependency>

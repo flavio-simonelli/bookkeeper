@@ -237,6 +237,13 @@
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
+      <!-- Added by Flavio -->
+      <!--
+      <dependency>
+          <groupId>randoop</groupId>
+          <artifactId>randoop</artifactId>
+      </dependency>
+        -->
   </dependencies>
   <build>
     <plugins>
@@ -408,5 +415,38 @@
         </plugins>
       </build>
     </profile>
+      <!-- Added by Flavio -->
+      <!--
+      <profile>
+          <id>generate-randoop</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>exec-maven-plugin</artifactId>
+                      <executions>
+                          <execution>
+                              <id>randoop-generation</id>
+                              <goals>
+                                  <goal>java</goal>
+                              </goals>
+                              <configuration>
+                                  <includePluginDependencies>false</includePluginDependencies>
+                                  <includeProjectDependencies>true</includeProjectDependencies>
+                                  <mainClass>randoop.main.Main</mainClass>
+                                  <arguments>
+                                      <argument>gentests</argument>
+                                      <argument>testclass=org.apache.bookkeeper.bookie.Journal</argument>
+                                      <argument>junit-output-dir=${project.build.directory}/randoop-test-generated</argument>
+                                      <argument>time-limit=60</argument>
+                                  </arguments>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+        </profile>
+        -->
   </profiles>
 </project>
