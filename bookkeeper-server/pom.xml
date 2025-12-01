@@ -243,7 +243,11 @@
           <groupId>randoop</groupId>
           <artifactId>randoop</artifactId>
       </dependency>
-        -->
+      <dependency>
+          <groupId>org.evosuite</groupId>
+          <artifactId>evosuite-standalone-runtime</artifactId>
+      </dependency>
+      -->
   </dependencies>
   <build>
     <plugins>
@@ -272,7 +276,8 @@
                         <dataFile>${project.build.directory}/coverage-reports/jacoco.exec</dataFile>
                         <outputDirectory>${project.build.directory}/coverage-reports/jacoco</outputDirectory>
                         <includes>
-                            <include>org/apache/bookkeeper/bookie/Journal.class</include>
+                            <include>org/apache/bookkeeper/bookie/JournalChannel.class</include>
+                            <include>org/apache/bookkeeper/bookie/BufferedChannel.class</include>
                         </includes>
                     </configuration>
                 </execution>
@@ -329,6 +334,12 @@
               <name>listener</name>
               <value>org.apache.bookkeeper.common.testing.util.TimedOutTestsListener</value>
             </property>
+              <!--
+            <property>
+              <name>listener</name>
+              <value>org.evosuite.runtime.InitializingListener</value>
+            </property>
+            -->
           </properties>
         </configuration>
       </plugin>

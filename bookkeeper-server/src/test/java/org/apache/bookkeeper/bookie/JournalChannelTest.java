@@ -4,8 +4,10 @@ import org.apache.bookkeeper.conf.ServerConfiguration;
 import org.junit.Before;
 
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -17,6 +19,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class JournalChannelTest {
@@ -43,9 +49,11 @@ public class JournalChannelTest {
 
 
     @Before
-    public void setUp() {
-        // Spy initialization
-        spyConf = new ServerConfiguration();
+    public void setUp() throws IOException {
+        // Configure Mocks to return expected objects mocked above
+        lenient().when(mockBufferedChannelBuilder.create(any(FileChannel.class), anyInt())).thenReturn(mockBufferedChannel);
+        lenient().when(mockFileChannelProvider.open(any(File.class), eq(spyConf))).thenReturn(mockBookieChannel);
+        lenient().when(mockBookieChannel.getFileChannel()).thenReturn(mockFileChannel);
     }
 
     /* Helper methods */
@@ -229,5 +237,40 @@ public class JournalChannelTest {
      */
     private File createInvalidDirectory() throws IOException {
         return tempFolder.newFile("i-am-a-file-" + System.nanoTime());
+    }
+
+    // Test methods //
+
+    @Test
+    public void NewJournalFile_V1() throws IOException {
+        // Configuration Parameters //
+        File journalDir = createEmptyDir();
+        long logId = 1L;
+        long preAllocSize = 1L;
+        int writeBufferSize = 1;
+        long position = -12345L;
+        int formatVersionToWrite = 6;
+        Journal.BufferedChannelBuilder bufferedChannelBuilder = mockBufferedChannelBuilder;
+        ServerConfiguration configuration = spyConf;
+        FileChannelProvider fileChannelProvider = mockFileChannelProvider;
+        Long toReplaceLogId = null;
+
+        // Configuration Mocks and Spy //
+
+        // Test Execution //
+        JournalChannel jc = new JournalChannel(
+                journalDir,
+                logId,
+                preAllocSize,
+                writeBufferSize,
+                512,
+                false,
+                formatVersionToWrite,
+                bufferedChannelBuilder,
+                configuration,
+                fileChannelProvider,
+                toReplaceLogId
+        );
+
     }
 }

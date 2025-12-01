@@ -213,6 +213,7 @@
     <!-- add by Flavio -->
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <!--<randoop.version>4.3.4</randoop.version>-->
+    <evosuiteVersion>1.2.0</evosuiteVersion>
     <sonar.organization>flavio-simonelli</sonar.organization>
   </properties>
 
@@ -837,6 +838,12 @@
         <version>${randoop.version}</version>
         <scope>test</scope>
       </dependency>
+        <dependency>
+            <groupId>org.evosuite</groupId>
+            <artifactId>evosuite-standalone-runtime</artifactId>
+            <version>${evosuiteVersion}</version>
+            <scope>test</scope>
+        </dependency>
         -->
 
       <!-- benchmark dependencies -->
