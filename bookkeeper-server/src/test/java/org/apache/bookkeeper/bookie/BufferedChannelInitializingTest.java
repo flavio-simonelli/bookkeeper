@@ -2,16 +2,14 @@ package org.apache.bookkeeper.bookie;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -35,7 +33,7 @@ public class BufferedChannelInitializingTest {
     private FileChannel fileChannelParam;
     private ByteBufAllocator allocatorParam;
     // risultato atteso
-    private final boolean exceptionExpected;
+    Class<? extends Throwable> expectedException;
     // temporary folder per ogni test
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -61,12 +59,12 @@ public class BufferedChannelInitializingTest {
         NULL          // Allocator null
     }
 
-    public BufferedChannelInitializingTest(int writeCapacity, int readCapacity, AllocatorType allocatorTypeParam, ChannelType channelTypeParam, boolean exceptionExpected) {
+    public BufferedChannelInitializingTest(int writeCapacity, int readCapacity, AllocatorType allocatorTypeParam, ChannelType channelTypeParam, Class<? extends Throwable> expectedException) {
         this.writeCapacityParam = writeCapacity;
         this.readCapacityParam = readCapacity;
         this.channelTypeParam = channelTypeParam;
         this.allocatorTypeParam = allocatorTypeParam;
-        this.exceptionExpected = exceptionExpected;
+        this.expectedException = expectedException;
     }
 
     /**
@@ -156,29 +154,31 @@ public class BufferedChannelInitializingTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 // 0. writeCap=1, readCap=1, Alloc=Corretto, FC=RW -> OK
-                {1, 1, AllocatorType.CORRECT, ChannelType.OPEN_RW, false},
+                {1, 1, AllocatorType.CORRECT, ChannelType.OPEN_RW, null},
                 // 1. writeCap=1, readCap=0, Alloc=Corretto, FC=W -> OK
-                {1, 0, AllocatorType.CORRECT, ChannelType.WRITE_ONLY, false},
+                {1, 0, AllocatorType.CORRECT, ChannelType.WRITE_ONLY, null},
                 // 2. writeCap=0, readCap=1, Alloc=Corretto, FC=R -> OK
-                {0, 1, AllocatorType.CORRECT, ChannelType.READ_ONLY, false},
+                {0, 1, AllocatorType.CORRECT, ChannelType.READ_ONLY, null},
                 // 3. writeCap=-1, readCap=1, Alloc=Corretto, FC=RW -> Err Size
-                {-1, 1, AllocatorType.CORRECT, ChannelType.OPEN_RW, true},
+                {-1, 1, AllocatorType.CORRECT, ChannelType.OPEN_RW, IllegalArgumentException.class},
                 // 4. writeCap=1, readCap=-1, Alloc=Corretto, FC=RW -> Err Size
-                {1, -1, AllocatorType.CORRECT, ChannelType.OPEN_RW, true},
+                {1, -1, AllocatorType.CORRECT, ChannelType.OPEN_RW, IllegalArgumentException.class},
                 // 5. writeCap=0, readCap=0, Alloc=Corretto, FC=RW -> Err Buffer Invalido
-                //{0, 0, AllocatorType.CORRECT, ChannelType.OPEN_RW, true},
+                //{0, 0, AllocatorType.CORRECT, ChannelType.OPEN_RW, IllegalArgumentException.class},
                 // 6. writeCap=1, readCap=1, Alloc=Corretto, FC=R -> Err FC solo lettura
-                //{1, 1, AllocatorType.CORRECT, ChannelType.READ_ONLY, true},
+                //{1, 1, AllocatorType.CORRECT, ChannelType.READ_ONLY, IllegalArgumentException.class},
                 // 7. writeCap=1, readCap=1, Alloc=Corretto, FC=W -> Err FC solo scrittura
-                //{1, 1, AllocatorType.CORRECT, ChannelType.WRITE_ONLY, true},
+                //{1, 1, AllocatorType.CORRECT, ChannelType.WRITE_ONLY, IllegalArgumentException.class},
                 // 8. writeCap=1, readCap=1, Alloc=Corretto, FC=Chiuso -> Err Chiuso
-                {1, 1, AllocatorType.CORRECT, ChannelType.CLOSE, true},
+                {1, 1, AllocatorType.CORRECT, ChannelType.CLOSE, ClosedChannelException.class},
                 // 9. writeCap=1, readCap=1, Alloc=NULL, FC=RW -> Err Allocator Null
-                {1, 1, AllocatorType.NULL, ChannelType.OPEN_RW, true},
+                {1, 1, AllocatorType.NULL, ChannelType.OPEN_RW, NullPointerException.class},
                 // 10. writeCap=2, readCap=2, Alloc=Minore, FC=RW -> Err Buffer Size
-                //{2, 2, AllocatorType.LESS_RETURN, ChannelType.OPEN_RW, true},
+                //{2, 2, AllocatorType.LESS_RETURN, ChannelType.OPEN_RW, IllegalStateException.class},
                 // 11. writeCap=1, readCap=1, Alloc=RitornaNull, FC=RW -> Err Buffer Null
-                //{1, 1, AllocatorType.NULL_RETURN, ChannelType.OPEN_RW, true}
+                //{1, 1, AllocatorType.NULL_RETURN, ChannelType.OPEN_RW, NullPointerException.class},
+                // 12. writeCap=1, readCap=1, Alloc=RitornaNull, FC=RW -> Err Channel Null
+                {1, 1, AllocatorType.CORRECT, ChannelType.NULL, NullPointerException.class}
         });
     }
 
@@ -231,19 +231,22 @@ public class BufferedChannelInitializingTest {
             );
 
             // Se arriviamo qui, il costruttore ha avuto successo.
-            if (exceptionExpected) {
-                fail("Il test doveva fallire ma il costruttore è riuscito con successo!");
+            if (expectedException != null) {
+                Assert.fail("Ci si aspettava l'eccezione: " + expectedException.getSimpleName() + " ma non è stata lanciata.");
             }
 
-        } catch (Exception e) {
-            // GESTIONE ECCEZIONI
-            if (!exceptionExpected) {
-                e.printStackTrace();
-                fail("Eccezione inattesa: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+        } catch (Throwable t) {
+            if (expectedException == null) {
+                Assert.fail("Non ci si aspettava alcuna eccezione invece abbiamo ricevuto: " + t.getClass().getSimpleName());
+            } else {
+                if (!expectedException.isInstance(t)) {
+                    Assert.fail("Eccezione errata. Attesa: " + expectedException.getSimpleName() +
+                            ", Ottenuta: " + t.getClass().getSimpleName());
+                }
             }
-            // Se exceptionExpected è true, il test passa (abbiamo catturato l'errore atteso)
         }
     }
+
 
     @After
     public void cleanup() {
