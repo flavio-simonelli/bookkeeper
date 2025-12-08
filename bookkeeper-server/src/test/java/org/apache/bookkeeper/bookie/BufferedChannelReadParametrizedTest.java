@@ -63,22 +63,33 @@ public class BufferedChannelReadParametrizedTest {
 
         List<Object[]> data = new ArrayList<Object[]>();
         // Test: fileDataQuantity, writeBufferDataQuantity, destCapacity, lengthReading, positionReading, expectedException, startIndex, endIndex
-        //data.add(scenarioFallimento(10, 10, 5, -1, 0, Exception.class));
+        //data.add(scenarioFallimento(10, 10, 5, -1, 0, Exception.class)); // fallisce perchè se chiedo una length negativa mi restituisce nulla senza dare errore
         data.add(scenarioFallimento(10, 10, 5, 5, -1, Exception.class));
         data.add(scenarioSuccesso(10, 10, 5, 5, 0));
-        //data.add(scenarioFallimento(10, 10, 5, 0, -1, Exception.class));
-        //data.add(scenarioFallimento(10, 10, 0, -1, 0, Exception.class));
+        //data.add(scenarioFallimento(10, 10, 5, 0, -1, Exception.class)); // questo non lancia eccezione ma non chiedendo dati restituisce subito
+        //data.add(scenarioFallimento(10, 10, 0, -1, 0, Exception.class)); // lunghezza negativa equivale a 0
         data.add(scenarioSuccesso(10, 10, 5, 0, 0));
         data.add(scenarioSuccesso(10, 10, 0, 0, 0));
         data.add(scenarioFallimento(10, 10, 0, 5, 0, Exception.class));
         data.add(scenarioSuccesso(10,10,5,5,0));
         data.add(scenarioFallimento(10,10,5,5,-1,Exception.class));
         data.add(scenarioSuccesso(10,10,5,5,5));
-        data.add(scenarioSuccesso(10,10,5,5,9));
-        data.add(scenarioSuccesso(10,10,5,5,15));
+        data.add(scenarioSuccesso(10,10,5,5,9)); // fallisce perchè forse ho sbagliato io a mettere bene i file e il buffer
+        data.add(scenarioSuccesso(10,10,5,5,15)); // non so cosa significa
         data.add(scenarioFallimento(10,10,5,5,19,Exception.class));
-        // sono arrivato a quello indicato come 18
-
+        data.add(scenarioFallimento(10,10,5,5,20,Exception.class));
+        data.add(scenarioFallimento(10,0,5,5,20,Exception.class));
+        data.add(scenarioSuccesso(10,0,5,5,0)); // credo di aver sbagliato a caricare i dati nel file
+        data.add(scenarioSuccesso(10,0,5,5,5)); // non so cosa significa
+        data.add(scenarioFallimento(10,0,5,5,9, Exception.class)); // eccezione posizione invalida
+        data.add(scenarioFallimento(0,10,5,5,10, Exception.class)); // eccezione posizione invalida
+        data.add(scenarioSuccesso(0,10,5,5,0));
+        data.add(scenarioSuccesso(0,10,5,5,5));
+        data.add(scenarioFallimento(0,10,5,5,9, Exception.class));
+        data.add(scenarioFallimento(0,10,5,5,10,Exception.class));
+        data.add(scenarioFallimento(0,0,5,5,-1, Exception.class));
+        data.add(scenarioFallimento(0,0,5,5,0, Exception.class));
+        data.add(scenarioFallimento(0,0,5,5,1, Exception.class));
         return data;
     }
 
@@ -89,8 +100,8 @@ public class BufferedChannelReadParametrizedTest {
         byte[] fileBufferContent = Arrays.copyOf(dataFileBuffer, fileDataQuantity);
         // creiamo buffer per oracolo
         byte[] temp = new byte[writeBufferContent.length +  fileBufferContent.length];
-        System.arraycopy(writeBufferContent, 0, temp, 0, writeBufferContent.length);
-        System.arraycopy(fileBufferContent, 0, temp, writeBufferContent.length, fileBufferContent.length);
+        System.arraycopy(fileBufferContent, 0, temp, 0, fileBufferContent.length);
+        System.arraycopy(writeBufferContent, 0, temp, fileBufferContent.length, writeBufferContent.length);
         // oracolo soluzione
         if ( positionReading > temp.length || positionReading < 0) {
             throw new InvalidTestConfigurationException(String.format(
@@ -121,7 +132,7 @@ public class BufferedChannelReadParametrizedTest {
         this.dest = ByteBufTestBuilder.withCapacity(destCap).getResult();
         // creiamo il FileChannel
         File file = new File(folder.getRoot().getAbsolutePath(), "prova.txn");
-        this.fileChannel = FileChannelTestBuilder.onFile(file).readWriteMode().withContent(fileData).getResult();
+        this.fileChannel = FileChannelTestBuilder.onFile(file).readWriteMode().withContent(fileData).withInitialPosition(fileData.length).getResult();
         // creiamo il sut
         int DEFAULT_SIZE_WRITE_BUFFER = 1024;
         this.sut = new BufferedChannel(UnpooledByteBufAllocator.DEFAULT, fileChannel, DEFAULT_SIZE_WRITE_BUFFER);
