@@ -27,16 +27,38 @@ public class FileChannelTestBuilder {
     }
 
     public FileChannelTestBuilder withContent(String text) {
+        if (text == null) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "content",
+                    "il contenuto non può essere null"
+            );
+        }
         this.content = text.getBytes(StandardCharsets.UTF_8);
         return this;
     }
 
     public FileChannelTestBuilder withContent(byte[] content) {
+        if  (content == null) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "content",
+                    "il contenuto non può essere null"
+            );
+        }
         this.content = content;
         return this;
     }
 
     public FileChannelTestBuilder atPosition(long position) {
+        // controllo che la posizione sia >= 0
+        if (position < 0) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "position",
+                    "La posizione in un file channel reale non può essere impostata ad un numero negativo, usa mock/spy manualmente"
+            );
+        }
         this.position = position;
         return this;
     }
@@ -96,15 +118,6 @@ public class FileChannelTestBuilder {
             );
         }
 
-        // controllo che la posizione sia >= 0
-        if (position < 0) {
-            throw new InvalidBuilderParameterException(
-                    this.getClass(),
-                    "position",
-                    "La posizione in un file channel reale non può essere impostata ad un numero negativo, usa mock/spy manualmente"
-            );
-        }
-
         // Scriviamo il contenuto PRIMA di aprire il canale definitivo
         if (content.length > 0) {
             // Controllo che la cartella padre esista
@@ -120,6 +133,11 @@ public class FileChannelTestBuilder {
         // posizionamento dell'indice
         if (position != 0) {
             channel.position(position);
+        }
+
+        // chiudi il file channel se richiesto
+        if (closed) {
+            channel.close();
         }
 
         return channel;
