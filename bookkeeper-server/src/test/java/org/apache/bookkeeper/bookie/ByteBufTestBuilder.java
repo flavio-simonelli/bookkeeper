@@ -1,5 +1,6 @@
 package org.apache.bookkeeper.bookie;
 
+import exceptions.InvalidBuilderParameterException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -11,90 +12,134 @@ import java.nio.charset.StandardCharsets;
  */
 public class ByteBufTestBuilder {
 
-    private byte[] content = null;
-    private final int capacity; // Default iniziale
-    private int readerIndex = 0;
-    private int writerIndex = 0;
+    // Parametri opzionali con valori di default null/safe
+    private Integer capacity = null;
+    private byte[] content = new byte[0];
+    private Integer readerIndex = null;
+    private Integer writerIndex = null;
     private boolean released = false;
-    private boolean autoWriterIndex = false; // Flag per calcolare l'index in base al contenuto
 
-    private ByteBufTestBuilder(int capacity) {
+    /**
+     * Imposta la capacità fissa del buffer.
+     * Se null, verrà calcolata in base alla lunghezza del contenuto.
+     */
+    public ByteBufTestBuilder withCapacity(int capacity) {
         if (capacity < 0) {
-            throw new IllegalArgumentException("La capacità non può essere negativa");
+            throw new InvalidBuilderParameterException(this.getClass(), "capacity", "La capacità non può essere negativa");
         }
         this.capacity = capacity;
-    }
-
-    public static ByteBufTestBuilder withCapacity(int capacity) {
-        return new ByteBufTestBuilder(capacity);
-    }
-
-    public ByteBufTestBuilder withContent(byte[] content) {
-        this.content = content;
-        // Se inseriamo contenuto, spesso vogliamo che il writerIndex
-        // sia alla fine del contenuto automaticamente
-        this.autoWriterIndex = true;
-        return this;
-    }
-
-    public ByteBufTestBuilder withContent(String contentString) {
-        return withContent(contentString.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public ByteBufTestBuilder withReaderIndex(int readerIndex) {
-        this.readerIndex = readerIndex;
-        return this;
-    }
-
-    public ByteBufTestBuilder withWriterIndex(int writerIndex) {
-        this.writerIndex = writerIndex;
-        this.autoWriterIndex = false; // Se lo setto a mano, disabilito l'auto
         return this;
     }
 
     /**
-     * Marca il buffer come rilasciato (refCnt = 0).
-     * Qualsiasi operazione successiva su questo buffer lancerà IllegalReferenceCountException.
+     * Imposta il contenuto iniziale (sposta implicitamente il writeIndex,
+     * a meno che writeIndex non venga sovrascritto esplicitamente).
      */
-    public ByteBufTestBuilder released() {
+    public ByteBufTestBuilder withContent(String contentString) {
+        if (contentString == null) {
+            throw new InvalidBuilderParameterException(this.getClass(), "content", "Il contenuto non può essere null");
+        }
+        this.content = contentString.getBytes(StandardCharsets.UTF_8);
+        return this;
+    }
+
+    public ByteBufTestBuilder withContent(byte[] contentBytes) {
+        if (contentBytes == null) {
+            throw new InvalidBuilderParameterException(this.getClass(), "content", "Il contenuto non può essere null");
+        }
+        this.content = contentBytes;
+        return this;
+    }
+
+    /**
+     * Imposta manualmente il readerIndex. Default = 0.
+     */
+    public ByteBufTestBuilder withReaderIndex(int readerIndex) {
+        if (readerIndex < 0) {
+            throw new InvalidBuilderParameterException(this.getClass(), "readerIndex", "L'indice di lettura non può essere negativo");
+        }
+        this.readerIndex = readerIndex;
+        return this;
+    }
+
+    /**
+     * Imposta manualmente il writerIndex.
+     * Se non specificato, sarà uguale alla fine del contenuto scritto.
+     */
+    public ByteBufTestBuilder withWriterIndex(int writerIndex) {
+        if (writerIndex < 0) {
+            throw new InvalidBuilderParameterException(this.getClass(), "writerIndex", "L'indice di scrittura non può essere negativo");
+        }
+        this.writerIndex = writerIndex;
+        return this;
+    }
+
+    /**
+     * Se true, il buffer verrà rilasciato (refCnt = 0) prima di essere restituito.
+     */
+    public ByteBufTestBuilder asReleased() {
         this.released = true;
         return this;
     }
 
-    public ByteBuf getResult() {
-        // controlliamo che il contenuto sia di dimensione minore o uguale della capacità
-        if (content != null && content.length > capacity) {
-            throw new IllegalArgumentException("Il contenuto richiesto nel buffer ha dimensione maggiore della capacità specificata");
-        }
+    public ByteBuf build() {
 
-        // 2. Creazione del buffer (Heap buffer è standard per i test unitari)
-        ByteBuf buf = Unpooled.buffer(capacity);
+        // calcolo Capacità Finale
+        int dataSize = content.length;
+        int finalCapacity;
 
-        // 3. Scrittura del contenuto (se presente)
-        if (content != null) {
-            buf.writeBytes(content);
-        }
-
-        // 4. Gestione Indici
-        // Nota: writeBytes sposta automaticamente il writerIndex.
-        // Se l'utente vuole un writerIndex specifico diverso dalla fine del contenuto:
-        if (!autoWriterIndex) {
-            // Controllo di sicurezza per evitare IndexOutOfBounds durante la costruzione
-            if (writerIndex > buf.capacity()) {
-                buf.capacity(writerIndex); // Espande se necessario
+        if (this.capacity != null) {
+            if (this.capacity < dataSize) {
+                throw new InvalidBuilderParameterException(
+                        this.getClass(),
+                        "capacity",
+                        String.format("La capacità (%d) è troppo piccola per contenere i dati forniti (%d)", capacity, dataSize)
+                );
             }
-            buf.writerIndex(writerIndex);
+            finalCapacity = this.capacity;
+        } else {
+            // se non specificata, usa la dimensione dei dati
+            finalCapacity = dataSize;
         }
 
-        // Il readerIndex va settato dopo, perché non può essere > writerIndex
-        buf.readerIndex(readerIndex);
+        // calcolo Indici Finali
+        // se writerIndex non è specificato, si assume che sia alla fine dei dati scritti
+        int finalWriterIndex = (this.writerIndex != null) ? this.writerIndex : dataSize;
+        int finalReaderIndex = (this.readerIndex != null) ? this.readerIndex : 0;
 
-        // 5. Simulazione deallocazione
-        // Un buffer appena creato ha refCnt = 1. Per portarlo a 0 facciamo release.
+        // validazione degli indici
+        if (finalWriterIndex > finalCapacity) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "writerIndex",
+                    String.format("Il writerIndex (%d) eccede la capacità (%d)", finalWriterIndex, finalCapacity)
+            );
+        }
+
+        if (finalReaderIndex > finalWriterIndex) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "readerIndex",
+                    String.format("Il readerIndex (%d) non può superare il writerIndex (%d)", finalReaderIndex, finalWriterIndex)
+            );
+        }
+
+        // creiamo il buffer
+        ByteBuf buffer = Unpooled.buffer(finalCapacity, finalCapacity);
+
+        // scrittura contenuto
+        if (dataSize > 0) {
+            buffer.writeBytes(content);
+        }
+
+        // forzatura indici
+        buffer.setIndex(finalReaderIndex, finalWriterIndex);
+
+        // rilascio del buffer se richiesto
         if (released) {
-            buf.release();
+            buffer.release();
         }
 
-        return buf;
+        return buffer;
     }
 }
