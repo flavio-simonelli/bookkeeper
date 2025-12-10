@@ -1,5 +1,7 @@
 package org.apache.bookkeeper.bookie;
 
+import exceptions.InvalidBuilderParameterException;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -11,25 +13,52 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Helper class per gestire la creazione e configurazione di FileChannel per i test.
+ * Builder pattern per la costruzione di un FileChannel
  */
 public class FileChannelTestBuilder {
-    private File targetFile;
-    private byte[] content;
-    private final Set<StandardOpenOption> options = new HashSet<>();
+    // impostazioni di default
+    private byte[] content = new byte[0];
+    private long position = 0;
+    private Set<StandardOpenOption> options = new HashSet<>();
     private boolean closed = false;
-    private long initialPosition = 0;
 
-    private FileChannelTestBuilder(File file) {
-        this.targetFile = file;
+    public static FileChannelTestBuilder aFileChannel() {
+        return new FileChannelTestBuilder();
     }
 
-    public static FileChannelTestBuilder onFile(File file) {
-        return  new FileChannelTestBuilder(file);
+    public FileChannelTestBuilder withContent(String text) {
+        this.content = text.getBytes(StandardCharsets.UTF_8);
+        return this;
     }
 
     public FileChannelTestBuilder withContent(byte[] content) {
         this.content = content;
+        return this;
+    }
+
+    public FileChannelTestBuilder atPosition(long position) {
+        this.position = position;
+        return this;
+    }
+
+    public FileChannelTestBuilder inReadMode() {
+        this.options.clear();
+        this.options.add(StandardOpenOption.READ);
+        return this;
+    }
+
+    public FileChannelTestBuilder inWriteMode() {
+        this.options.clear();
+        this.options.add(StandardOpenOption.WRITE);
+        this.options.add(StandardOpenOption.CREATE);
+        return this;
+    }
+
+    public FileChannelTestBuilder inReadWriteMode() {
+        this.options.clear();
+        this.options.add(StandardOpenOption.READ);
+        this.options.add(StandardOpenOption.WRITE);
+        this.options.add(StandardOpenOption.CREATE);
         return this;
     }
 
@@ -38,58 +67,62 @@ public class FileChannelTestBuilder {
         return this;
     }
 
-    public FileChannelTestBuilder readOnlyMode() {
-        this.options.add(StandardOpenOption.READ);
-        return this;
-    }
+    public FileChannel build(Path targetFile) throws IOException {
 
-    public FileChannelTestBuilder writeOnlyMode() {
-        this.options.add(StandardOpenOption.WRITE);
-        return this;
-    }
-
-    public FileChannelTestBuilder readWriteMode() {
-        this.options.add(StandardOpenOption.WRITE);
-        this.options.add(StandardOpenOption.READ);
-        return this;
-    }
-
-    public FileChannelTestBuilder withInitialPosition(long initialPosition) {
-        this.initialPosition = initialPosition;
-        return this;
-    }
-
-    public FileChannel getResult() throws IOException {
-        // controllo che sia stata specifica una opzione di apertura del canale
-        if (options.isEmpty()) {
-            throw new IllegalArgumentException("Configurazione incompleta: Devi specificare una modalità (es. readOnlyMode() o readWriteMode() o writeOnlyMode())");
-        }
+        // controllo del path
         if (targetFile == null) {
-            throw new IllegalArgumentException("Nessun File specificato su cui creare il filechannel");
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "targetFile",
+                    "Il percorso del file di destinazione non può essere null"
+            );
         }
-        // Assicuriamoci che le directory padre esistano
-        if (targetFile.getParentFile() != null) {
-            targetFile.getParentFile().mkdirs();
+
+        // controllo opzioni di apertura
+        if (options.isEmpty()) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "options",
+                    "non è stato selezionato alcuna opzione di apertura del file channel"
+            );
         }
-        Path path = this.targetFile.toPath();
-        // creiamo il file se non esiste
-        if (!Files.exists(path)) {
-            Files.createFile(path);
+
+        // controllo Create New option e contenuto
+        if (content.length > 0 && options.contains(StandardOpenOption.CREATE_NEW)) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "options",
+                    "Conflitto di configurazione: Non puoi pre-scrivere del contenuto e usare CREATE_NEW contemporaneamente."
+            );
         }
-        // Scriviamo nel file il contenuto iniziale se presente
-        if (content != null) {
-            Files.write(path, content);
+
+        // controllo che la posizione sia >= 0
+        if (position < 0) {
+            throw new InvalidBuilderParameterException(
+                    this.getClass(),
+                    "position",
+                    "La posizione in un file channel reale non può essere impostata ad un numero negativo, usa mock/spy manualmente"
+            );
         }
-        // Apriamo il canale
-        FileChannel fc = FileChannel.open(path, options);
-        // Spostiamo il cursore se richiesto della lettura
-        if (initialPosition > 0) {
-            fc.position(initialPosition);
+
+        // Scriviamo il contenuto PRIMA di aprire il canale definitivo
+        if (content.length > 0) {
+            // Controllo che la cartella padre esista
+            if (targetFile.getParent() != null) {
+                Files.createDirectories(targetFile.getParent());
+            }
+            Files.write(targetFile, content);
         }
-        // Chiudiamo il canale se richiesto
-        if (closed) {
-            fc.close();
+
+        // apertura del file channel
+        FileChannel channel = FileChannel.open(targetFile, options.toArray(new StandardOpenOption[0]));
+
+        // posizionamento dell'indice
+        if (position != 0) {
+            channel.position(position);
         }
-        return fc;
+
+        return channel;
     }
+
 }
