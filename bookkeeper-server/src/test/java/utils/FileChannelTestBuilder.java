@@ -1,8 +1,7 @@
-package org.apache.bookkeeper.bookie;
+package utils;
 
 import exceptions.InvalidBuilderParameterException;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +59,11 @@ public class FileChannelTestBuilder {
             );
         }
         this.position = position;
+        return this;
+    }
+
+    public FileChannelTestBuilder withOption(StandardOpenOption option) {
+        this.options.add(option);
         return this;
     }
 
