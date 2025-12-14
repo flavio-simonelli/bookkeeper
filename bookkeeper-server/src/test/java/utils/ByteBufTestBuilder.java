@@ -19,6 +19,10 @@ public class ByteBufTestBuilder {
     private Integer writerIndex = null;
     private boolean released = false;
 
+    public static ByteBufTestBuilder aByteBufTestBuilder() {
+        return new ByteBufTestBuilder();
+    }
+
     /**
      * Imposta la capacità fissa del buffer.
      * Se null, verrà calcolata in base alla lunghezza del contenuto.

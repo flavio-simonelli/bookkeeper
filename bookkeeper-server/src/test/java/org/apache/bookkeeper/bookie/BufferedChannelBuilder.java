@@ -22,6 +22,10 @@ public class BufferedChannelBuilder {
     private Long injectedUnpersistedBytes = null;
     private Long injectedGlobalPosition = null;
 
+    public static BufferedChannelBuilder aBufferedChannel() {
+        return new BufferedChannelBuilder();
+    }
+
     public BufferedChannelBuilder withAllocator(ByteBufAllocator allocator) {
         this.allocator = allocator;
         return this;
@@ -32,7 +36,7 @@ public class BufferedChannelBuilder {
         return this;
     }
 
-    public BufferedChannelBuilder withCapacity(int capacity) {
+    public BufferedChannelBuilder withWriteCapacity(int capacity) {
         this.writeCapacity = capacity;
         return this;
     }
@@ -102,13 +106,19 @@ public class BufferedChannelBuilder {
         }
 
         // posizione di start del buffer
+        long effectiveStartPosition;
         if (injectedWriteBufferStartPosition != null) {
-            bc.writeBufferStartPosition.set(injectedWriteBufferStartPosition);
+            effectiveStartPosition = injectedWriteBufferStartPosition;
+        } else {
+            effectiveStartPosition = fc.size();
         }
+        bc.writeBufferStartPosition.set(effectiveStartPosition);
 
         // contenuto del buffer
+        int writtenBytes = 0;
         if (injectedContent != null) {
             bc.writeBuffer.writeBytes(injectedContent);
+            writtenBytes = injectedContent.length;
         }
 
         // bytes non persistiti
@@ -118,20 +128,14 @@ public class BufferedChannelBuilder {
             bc.unpersistedBytes.set(injectedContent.length);
         }
 
-        // posizione Globale (channel.position)
-        // Se l'utente l'ha forzata, usiamo quella.
-        // Altrimenti, calcoliamo noi in base a startPosition + bytes scritti nel buffer
+        // posizione Globale
         if (injectedGlobalPosition != null) {
+            // L'utente ha forzato una posizione globale
             bc.position = injectedGlobalPosition;
         } else {
-            // Logica automatica di convenienza: se ho iniettato dati, aggiorno la posizione
-            long start = (injectedWriteBufferStartPosition != null) ? injectedWriteBufferStartPosition : bc.writeBufferStartPosition.get();
-            int written = (injectedContent != null) ? injectedContent.length : 0;
-
-            // Aggiorniamo la position solo se abbiamo toccato qualcosa, altrimenti lasciamo quella del costruttore (che prende da fc.position())
-            if (injectedWriteBufferStartPosition != null || injectedContent != null) {
-                bc.position = start + written;
-            }
+            // (Default): La posizione è alla fine di tutto (File + Buffer)
+            // Logica: StartPosition (fine file) + Bytes scritti in RAM
+            bc.position = effectiveStartPosition + writtenBytes;
         }
 
         return bc;
