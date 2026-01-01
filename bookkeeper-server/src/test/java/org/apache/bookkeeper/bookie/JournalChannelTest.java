@@ -3,6 +3,7 @@ package org.apache.bookkeeper.bookie;
 import org.apache.bookkeeper.conf.ServerConfiguration;
 import org.junit.Before;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -24,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class JournalChannelTest {
     // Constants

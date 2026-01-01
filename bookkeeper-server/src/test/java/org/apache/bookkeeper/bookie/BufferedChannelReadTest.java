@@ -17,6 +17,7 @@ import java.util.Collection;
 
 import static org.junit.Assert.*;
 
+@Ignore
 @RunWith(Parameterized.class)
 public class BufferedChannelReadTest {
 

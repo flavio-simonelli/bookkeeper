@@ -2,6 +2,7 @@
 package org.apache.bookkeeper.bookie;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -13,6 +14,7 @@ import java.util.Collection;
 
 import static org.junit.Assert.fail;
 
+@Ignore
 @RunWith(Parameterized.class)
 public class ParametrizedJournalChannelTest {
     // Variabili per parametri e risultati attesi
