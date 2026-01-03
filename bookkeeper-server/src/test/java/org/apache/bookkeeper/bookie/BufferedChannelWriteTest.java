@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import utils.ByteBufTestBuilder;
 import utils.FileChannelTestBuilder;
 
 import java.io.File;
@@ -123,7 +124,7 @@ public class BufferedChannelWriteTest {
                 // WriteCap, ChannelType, UBBound, InitUB, SrcType, SrcLen, ExpException, ExpFileBytes, ExpBufferBytes, expectedForceCall
                 {1, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, 0, Exception.class, null, null, false},
                 {1, ChannelType.OPEN_RW, 10, 0, SrcType.RELEASED, 9, Exception.class, null, null, false}, // se il buffer è 0 anche se è rilasciato non avremo una eccezione
-                //{1, ChannelType.OPEN_RW, 10, 0, SrcType.INVALID_INDEX, 0, Exception.class, null, null, false}, questo non è un errore è che devo usare il builder altrimenti non mi fa spostare l'indice
+                //{1, ChannelType.OPEN_RW, 10, 0, SrcType.INVALID_INDEX, 0, Exception.class, null, null, false}, QUesto non ha senso perchè non ha senso sapere per lui come sono gli indici a lui basta che gli arrivano i dati o non gli arrivano i dati
                 {1, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, null, empty(), empty(), false},
                 {9, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, null, slice(0,9), empty(), false},
                 {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, null, slice(0,10), empty(), true},
@@ -184,24 +185,17 @@ public class BufferedChannelWriteTest {
     }
 
     private ByteBuf createSrcBuffer() {
-        if (srcTypeParam == SrcType.NULL) return null;
-
-        ByteBuf b = UnpooledByteBufAllocator.DEFAULT.buffer(srcLengthParam);
-        if (srcLengthParam > 0) {
-            b.writeBytes(SRC_DATA, 0, srcLengthParam);
+        switch (srcTypeParam) {
+            case NULL:
+                return null;
+            case RELEASED:
+                return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(srcLengthParam).withContent(Arrays.copyOfRange(SRC_DATA, 0, srcLengthParam)).asReleased().build();
+            case INVALID_INDEX:
+                return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(srcLengthParam).withContent(Arrays.copyOfRange(SRC_DATA, 0, srcLengthParam)).withInvalidIndices().withReaderIndex(-1).withWriterIndex(srcLengthParam).build();
+            case VALID:
+                return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(srcLengthParam).withContent(Arrays.copyOfRange(SRC_DATA, 0, srcLengthParam)).build();
         }
-
-        if (srcTypeParam == SrcType.RELEASED) {
-            b.release();
-            return b;
-        }
-
-        if (srcTypeParam == SrcType.INVALID_INDEX) {
-            // Simuliamo indice invalido
-            b.readerIndex(b.writerIndex() + 1);
-            return b;
-        }
-        return b;
+        throw new IllegalArgumentException("Unsupported src type: " + srcTypeParam);
     }
 
     @Test

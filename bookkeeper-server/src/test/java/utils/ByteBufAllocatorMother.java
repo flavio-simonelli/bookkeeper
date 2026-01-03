@@ -28,6 +28,7 @@ public class ByteBufAllocatorMother {
     public static ByteBufAllocator createNullAllocator() {
         ByteBufAllocator allocator = mock(ByteBufAllocator.class);
         when(allocator.directBuffer(anyInt())).thenReturn(null); // esplicito per leggibilità ma non necessario
+        when(allocator.buffer(anyInt())).thenReturn(null); // esplicito per leggibilità ma non necessario
         return allocator;
     }
 
@@ -37,7 +38,6 @@ public class ByteBufAllocatorMother {
      */
     public static ByteBufAllocator createUndersizedAllocator() {
         ByteBufAllocator allocator = mock(ByteBufAllocator.class);
-
         Answer<ByteBuf> undersizedAnswer = invocation -> {
             int reqCap = (Integer) invocation.getArguments()[0];
 
@@ -47,6 +47,7 @@ public class ByteBufAllocatorMother {
         };
 
         when(allocator.directBuffer(anyInt())).thenAnswer(undersizedAnswer);
+        when(allocator.buffer(anyInt())).thenAnswer(undersizedAnswer);
 
         return allocator;
     }
@@ -65,6 +66,7 @@ public class ByteBufAllocatorMother {
         };
 
         when(allocator.directBuffer(anyInt())).thenAnswer(deallocAnswer);
+        when(allocator.buffer(anyInt())).thenAnswer(deallocAnswer);
 
         return allocator;
     }

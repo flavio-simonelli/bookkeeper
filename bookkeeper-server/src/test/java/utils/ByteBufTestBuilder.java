@@ -6,6 +6,9 @@ import io.netty.buffer.Unpooled;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+
 /**
  * Helper class per creare e configurare istanze di ByteBuf per i test.
  * Permette di definire contenuto, indici e stato di allocazione.
@@ -18,6 +21,7 @@ public class ByteBufTestBuilder {
     private Integer readerIndex = null;
     private Integer writerIndex = null;
     private boolean released = false;
+    private boolean allowInvalidIndices = false;
 
     public static ByteBufTestBuilder aByteBufTestBuilder() {
         return new ByteBufTestBuilder();
@@ -59,9 +63,6 @@ public class ByteBufTestBuilder {
      * Imposta manualmente il readerIndex. Default = 0.
      */
     public ByteBufTestBuilder withReaderIndex(int readerIndex) {
-        if (readerIndex < 0) {
-            throw new InvalidBuilderParameterException(this.getClass(), "readerIndex", "L'indice di lettura non può essere negativo");
-        }
         this.readerIndex = readerIndex;
         return this;
     }
@@ -71,10 +72,15 @@ public class ByteBufTestBuilder {
      * Se non specificato, sarà uguale alla fine del contenuto scritto.
      */
     public ByteBufTestBuilder withWriterIndex(int writerIndex) {
-        if (writerIndex < 0) {
-            throw new InvalidBuilderParameterException(this.getClass(), "writerIndex", "L'indice di scrittura non può essere negativo");
-        }
         this.writerIndex = writerIndex;
+        return this;
+    }
+
+    /**
+     * Se true, gli indici potranno essere invalidi e quindi non rispettare le regole di un bytebuffer
+     */
+    public ByteBufTestBuilder withInvalidIndices() {
+        this.allowInvalidIndices = true;
         return this;
     }
 
@@ -111,21 +117,31 @@ public class ByteBufTestBuilder {
         int finalWriterIndex = (this.writerIndex != null) ? this.writerIndex : dataSize;
         int finalReaderIndex = (this.readerIndex != null) ? this.readerIndex : 0;
 
-        // validazione degli indici
-        if (finalWriterIndex > finalCapacity) {
-            throw new InvalidBuilderParameterException(
-                    this.getClass(),
-                    "writerIndex",
-                    String.format("Il writerIndex (%d) eccede la capacità (%d)", finalWriterIndex, finalCapacity)
-            );
-        }
+        if (!allowInvalidIndices) {
+            // validazione degli indici
+            if (finalWriterIndex < 0) {
+                throw new InvalidBuilderParameterException(this.getClass(), "writerIndex", "L'indice di scrittura non può essere negativo");
+            }
 
-        if (finalReaderIndex > finalWriterIndex) {
-            throw new InvalidBuilderParameterException(
-                    this.getClass(),
-                    "readerIndex",
-                    String.format("Il readerIndex (%d) non può superare il writerIndex (%d)", finalReaderIndex, finalWriterIndex)
-            );
+            if (finalReaderIndex < 0) {
+                throw new InvalidBuilderParameterException(this.getClass(), "readerIndex", "L'indice di lettura non può essere negativo");
+            }
+
+            if (finalWriterIndex > finalCapacity) {
+                throw new InvalidBuilderParameterException(
+                        this.getClass(),
+                        "writerIndex",
+                        String.format("Il writerIndex (%d) eccede la capacità (%d)", finalWriterIndex, finalCapacity)
+                );
+            }
+
+            if (finalReaderIndex > finalWriterIndex) {
+                throw new InvalidBuilderParameterException(
+                        this.getClass(),
+                        "readerIndex",
+                        String.format("Il readerIndex (%d) non può superare il writerIndex (%d)", finalReaderIndex, finalWriterIndex)
+                );
+            }
         }
 
         // creiamo il buffer
@@ -136,8 +152,19 @@ public class ByteBufTestBuilder {
             buffer.writeBytes(content);
         }
 
-        // forzatura indici
-        buffer.setIndex(finalReaderIndex, finalWriterIndex);
+        // 3. Applicazione degli indici
+        if (allowInvalidIndices) {
+            // Se vogliamo indici invalidi, dobbiamo usare uno SPY
+            buffer = spy(buffer);
+
+            // Usiamo doReturn per evitare che lo spy chiami il metodo reale
+            // che lancerebbe IndexOutOfBoundsException
+            doReturn(finalReaderIndex).when(buffer).readerIndex();
+            doReturn(finalWriterIndex).when(buffer).writerIndex();
+        } else {
+            // Comportamento standard
+            buffer.setIndex(finalReaderIndex, finalWriterIndex);
+        }
 
         // rilascio del buffer se richiesto
         if (released) {

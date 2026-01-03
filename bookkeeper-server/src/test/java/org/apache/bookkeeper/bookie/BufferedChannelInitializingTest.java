@@ -16,9 +16,9 @@ import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class BufferedChannelInitializingTest {
@@ -169,6 +169,7 @@ public class BufferedChannelInitializingTest {
                     .doesNotThrowAnyException();
 
             assertNotNull(bufferedChannel);
+            // checkInternalBuffer();
         }
     }
 
@@ -196,6 +197,27 @@ public class BufferedChannelInitializingTest {
         // la TemporaryFolder.delete() viene chiamata automaticamente dalla Rule di JUnit alla fine di ogni test.
     }
 
+    /*
+    Questa funizone era una funzione di controllo che è servita per verificare i buffer interni nel caso in cui il filechannel erano writeonly o readonly
+    void checkInternalBuffer() {
+        if (channelTypeParam == ChannelType.READ_ONLY) {
+            if (bufferedChannel.writeBuffer != null) {
+                int cap = bufferedChannel.writeBuffer.capacity();
+                assertThat(cap)
+                        .as("In READ_ONLY, il writeBuffer dovrebbe avere capacità 0, invece ha: %d", cap)
+                        .isEqualTo(0);
+            }
+        }
+        if (channelTypeParam == ChannelType.WRITE_ONLY) {
+            if (bufferedChannel.readBuffer != null) {
+                int cap = bufferedChannel.readBuffer.capacity();
+                assertThat(cap)
+                        .as("In WRITE_ONLY, il readBuffer dovrebbe avere capacità 0, invece ha: %d", cap)
+                        .isEqualTo(0);
+            }
+        }
+    }
+    */
 
 
 
