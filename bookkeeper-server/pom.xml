@@ -283,6 +283,15 @@
                 </execution>
             </executions>
         </plugin>
+        <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <configuration>
+                <targetClasses>
+                    <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
+                </targetClasses>
+            </configuration>
+        </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
