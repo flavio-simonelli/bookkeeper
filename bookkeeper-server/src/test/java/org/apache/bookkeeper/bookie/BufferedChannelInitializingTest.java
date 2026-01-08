@@ -18,8 +18,10 @@ import java.util.Collection;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
+/**
+ * Unit test manuali per la classe BufferedChannel, funzionalità inizializzazione del 3 layer in RAM
+ */
 @RunWith(Parameterized.class)
 public class BufferedChannelInitializingTest {
     // parameters
@@ -106,22 +108,23 @@ public class BufferedChannelInitializingTest {
     @Parameterized.Parameters(name = "Test {index}: wCap={0}, rCap={1}, Alloc={2}, Channel={3} -> Expect={4}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
+                // writeCap, readCap, ByteBufAllocatorType, FileChannelType, exception
                 {1, 1, AllocatorType.NULL, ChannelType.OPEN_RW, Exception.class},
-                //{1, 1, AllocatorType.LESS_RETURN, ChannelType.OPEN_RW, Exception.class},
-                //{1, 1, AllocatorType.NULL_RETURN, ChannelType.OPEN_RW, Exception.class},
-                //{1, 1, AllocatorType.DEALLOC_RETURN, ChannelType.OPEN_RW, Exception.class},
+                //{1, 1, AllocatorType.LESS_RETURN, ChannelType.OPEN_RW, Exception.class}, // non viene sollevata nessuna eccezione
+                //{1, 1, AllocatorType.NULL_RETURN, ChannelType.OPEN_RW, Exception.class}, // non viene sollevata nessuna eccezione
+                //{1, 1, AllocatorType.DEALLOC_RETURN, ChannelType.OPEN_RW, Exception.class}, // non viene sollevata nessuna eccezione
                 {1, 1, AllocatorType.VALID, ChannelType.CLOSE, Exception.class},
                 {1, 1, AllocatorType.VALID, ChannelType.NULL, Exception.class},
-                //{1, 1, AllocatorType.VALID, ChannelType.READ_ONLY, Exception.class},
-                //{1, 0, AllocatorType.VALID, ChannelType.READ_ONLY, Exception.class},
+                //{1, 1, AllocatorType.VALID, ChannelType.READ_ONLY, null}, //
+                //{1, 0, AllocatorType.VALID, ChannelType.READ_ONLY, null}, //
                 {0, 1, AllocatorType.VALID, ChannelType.READ_ONLY, null},
                 {0, 0, AllocatorType.VALID, ChannelType.READ_ONLY, null},
                 {0, -1, AllocatorType.VALID, ChannelType.READ_ONLY, Exception.class},
                 {-1, 0, AllocatorType.VALID, ChannelType.READ_ONLY, Exception.class},
                 {-1, -1, AllocatorType.VALID, ChannelType.READ_ONLY, Exception.class},
-                //{1, 1, AllocatorType.VALID, ChannelType.WRITE_ONLY, Exception.class},
+                //{1, 1, AllocatorType.VALID, ChannelType.WRITE_ONLY, null}, //
                 {1, 0, AllocatorType.VALID, ChannelType.WRITE_ONLY, null},
-                //{0, 1, AllocatorType.VALID, ChannelType.WRITE_ONLY, Exception.class},
+                //{0, 1, AllocatorType.VALID, ChannelType.WRITE_ONLY, null}, //
                 {0, 0, AllocatorType.VALID, ChannelType.WRITE_ONLY, null},
                 {0, -1, AllocatorType.VALID, ChannelType.WRITE_ONLY, Exception.class},
                 {-1, 0, AllocatorType.VALID, ChannelType.WRITE_ONLY, Exception.class},
@@ -169,7 +172,7 @@ public class BufferedChannelInitializingTest {
                     .doesNotThrowAnyException();
 
             assertNotNull(bufferedChannel);
-            // checkInternalBuffer();
+            verifyBufferCapacities();
         }
     }
 
@@ -197,27 +200,62 @@ public class BufferedChannelInitializingTest {
         // la TemporaryFolder.delete() viene chiamata automaticamente dalla Rule di JUnit alla fine di ogni test.
     }
 
-    /*
-    Questa funizone era una funzione di controllo che è servita per verificare i buffer interni nel caso in cui il filechannel erano writeonly o readonly
-    void checkInternalBuffer() {
+    /**
+     * Verifica che i buffer interni siano coerenti con i parametri e con la modalità del canale.
+     * Logica di controllo:
+     * - Se il canale è READ_ONLY, il writeBuffer deve essere 0/null (anche se richiesto > 0).
+     * - Se il canale è WRITE_ONLY, il readBuffer deve essere 0/null (anche se richiesto > 0).
+     * - In tutti gli altri casi, la capacità dei buffer deve corrispondere esattamente ai parametri passati.
+     */
+    private void verifyBufferCapacities() {
+        // Controllo WRITE BUFFER
         if (channelTypeParam == ChannelType.READ_ONLY) {
+            // Caso Speciale: Il canale è in sola lettura.
+            // Il writeBuffer NON deve essere allocato (o deve essere vuoto), anche se writeCapacityParam > 0.
             if (bufferedChannel.writeBuffer != null) {
-                int cap = bufferedChannel.writeBuffer.capacity();
-                assertThat(cap)
-                        .as("In READ_ONLY, il writeBuffer dovrebbe avere capacità 0, invece ha: %d", cap)
+                assertThat(bufferedChannel.writeBuffer.capacity())
+                        .as("In modalità READ_ONLY è stato allocato un writeBuffer con capacità > 0")
                         .isEqualTo(0);
             }
+        } else {
+            // Caso Standard (OPEN_RW o WRITE_ONLY):
+            // La capacità reale deve corrispondere a quella richiesta.
+            if (bufferedChannel.writeBuffer != null) {
+                assertThat(bufferedChannel.writeBuffer.capacity())
+                        .as("La capacità del writeBuffer non corrisponde al parametro passato")
+                        .isEqualTo(writeCapacityParam);
+            } else {
+                // Se il buffer è null, è accettabile solo se avevamo chiesto 0
+                if (writeCapacityParam > 0) {
+                    fail("Il writeBuffer è null ma la writeCapacityParam era " + writeCapacityParam);
+                }
+            }
         }
+
+        // Controllo READ BUFFER
         if (channelTypeParam == ChannelType.WRITE_ONLY) {
+            // Caso Speciale: Il canale è in sola scrittura.
+            // Il readBuffer NON deve essere allocato (o deve essere vuoto), anche se readCapacityParam > 0.
             if (bufferedChannel.readBuffer != null) {
-                int cap = bufferedChannel.readBuffer.capacity();
-                assertThat(cap)
-                        .as("In WRITE_ONLY, il readBuffer dovrebbe avere capacità 0, invece ha: %d", cap)
+                assertThat(bufferedChannel.readBuffer.capacity())
+                        .as("In modalità WRITE_ONLY è stato allocato un readBuffer con capacità > 0")
                         .isEqualTo(0);
+            }
+        } else {
+            // Caso Standard (OPEN_RW o READ_ONLY):
+            // La capacità reale deve corrispondere a quella richiesta.
+            if (bufferedChannel.readBuffer != null) {
+                assertThat(bufferedChannel.readBuffer.capacity())
+                        .as("La capacità del readBuffer non corrisponde al parametro passato")
+                        .isEqualTo(readCapacityParam);
+            } else {
+                // Se il buffer è null, è accettabile solo se avevamo chiesto 0
+                if (readCapacityParam > 0) {
+                    fail("Il readBuffer è null ma la readCapacityParam era " + readCapacityParam);
+                }
             }
         }
     }
-    */
 
 
 
