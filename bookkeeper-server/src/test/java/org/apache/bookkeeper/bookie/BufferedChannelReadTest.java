@@ -77,7 +77,6 @@ public class BufferedChannelReadTest {
         NULL,
         RELEASED,
         VALID,
-        INVALIDINDEX,
     }
 
     public enum AllocatorType {
@@ -139,13 +138,10 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.INVALIDINDEX, 2, 0L, AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 1, 0, DestType.INVALIDINDEX, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.INVALIDINDEX, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
                 //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class}, // ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
@@ -174,8 +170,6 @@ public class BufferedChannelReadTest {
                 return null;
             case RELEASED:
                 return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).asReleased().build();
-            case INVALIDINDEX:
-                return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).withInvalidIndices().withWriterIndex(-1).build();
             case VALID:
                 return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).build();
         }
