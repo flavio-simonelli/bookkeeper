@@ -10,8 +10,16 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 /**
- * Helper class per creare e configurare istanze di ByteBuf per i test.
- * Permette di definire contenuto, indici e stato di allocazione.
+ * Helper class per la creazione fluente e configurabile di istanze {@link ByteBuf} per scopi di testing.
+ * <p>
+ * Questa classe implementa il pattern <strong>Builder</strong> e permette di definire in modo granulare
+ * lo stato interno del buffer, inclusi il contenuto, la capacità e la posizione degli indici (<em>readerIndex</em> e <em>writerIndex</em>).
+ * </p>
+ * <p>
+ * Una funzionalità chiave è la possibilità di generare buffer con stati <strong>invalidi</strong> (tramite {@code withInvalidIndices})
+ * o già <strong>deallocati</strong> (tramite {@code asReleased}), utilizzando internamente Mockito Spy per
+ * forzare comportamenti che l'implementazione standard di Netty impedirebbe lanciando eccezioni.
+ * </p>
  */
 public class ByteBufTestBuilder {
 
@@ -23,13 +31,23 @@ public class ByteBufTestBuilder {
     private boolean released = false;
     private boolean allowInvalidIndices = false;
 
+    /**
+     * Punto di ingresso statico per iniziare la catena di costruzione del builder.
+     *
+     * @return Una nuova istanza del builder.
+     */
     public static ByteBufTestBuilder aByteBufTestBuilder() {
         return new ByteBufTestBuilder();
     }
 
     /**
      * Imposta la capacità fissa del buffer.
-     * Se null, verrà calcolata in base alla lunghezza del contenuto.
+     * Se questo valore non viene specificato (null), la capacità verrà calcolata automaticamente
+     * in base alla lunghezza del contenuto fornito.
+     *
+     * @param capacity La capacità in byte (deve essere >= 0).
+     * @return L'istanza corrente del builder.
+     * @throws InvalidBuilderParameterException Se la capacità è negativa.
      */
     public ByteBufTestBuilder withCapacity(int capacity) {
         if (capacity < 0) {
@@ -40,8 +58,13 @@ public class ByteBufTestBuilder {
     }
 
     /**
-     * Imposta il contenuto iniziale (sposta implicitamente il writeIndex,
-     * a meno che writeIndex non venga sovrascritto esplicitamente).
+     * Imposta il contenuto iniziale del buffer partendo da una stringa.
+     * La stringa viene convertita in byte usando la codifica UTF-8.
+     * Questo metodo influenza implicitamente il writerIndex, a meno che non venga sovrascritto manualmente.
+     *
+     * @param contentString La stringa da scrivere nel buffer.
+     * @return L'istanza corrente del builder.
+     * @throws InvalidBuilderParameterException Se il contenuto è null.
      */
     public ByteBufTestBuilder withContent(String contentString) {
         if (contentString == null) {
@@ -51,6 +74,14 @@ public class ByteBufTestBuilder {
         return this;
     }
 
+    /**
+     * Imposta il contenuto iniziale del buffer partendo da un array di byte.
+     * Questo metodo influenza implicitamente il writerIndex, a meno che non venga sovrascritto manualmente.
+     *
+     * @param contentBytes L'array di byte da scrivere.
+     * @return L'istanza corrente del builder.
+     * @throws InvalidBuilderParameterException Se il contenuto è null.
+     */
     public ByteBufTestBuilder withContent(byte[] contentBytes) {
         if (contentBytes == null) {
             throw new InvalidBuilderParameterException(this.getClass(), "content", "Il contenuto non può essere null");
@@ -60,7 +91,11 @@ public class ByteBufTestBuilder {
     }
 
     /**
-     * Imposta manualmente il readerIndex. Default = 0.
+     * Imposta manualmente l'indice di lettura (readerIndex).
+     * Il valore di default se non specificato è 0.
+     *
+     * @param readerIndex L'indice di lettura desiderato.
+     * @return L'istanza corrente del builder.
      */
     public ByteBufTestBuilder withReaderIndex(int readerIndex) {
         this.readerIndex = readerIndex;
@@ -68,8 +103,11 @@ public class ByteBufTestBuilder {
     }
 
     /**
-     * Imposta manualmente il writerIndex.
-     * Se non specificato, sarà uguale alla fine del contenuto scritto.
+     * Imposta manualmente l'indice di scrittura (writerIndex).
+     * Se non specificato, questo valore corrisponderà alla fine del contenuto scritto.
+     *
+     * @param writerIndex L'indice di scrittura desiderato.
+     * @return L'istanza corrente del builder.
      */
     public ByteBufTestBuilder withWriterIndex(int writerIndex) {
         this.writerIndex = writerIndex;
@@ -77,7 +115,11 @@ public class ByteBufTestBuilder {
     }
 
     /**
-     * Se true, gli indici potranno essere invalidi e quindi non rispettare le regole di un bytebuffer
+     * Abilita la configurazione di indici non validi che normalmente violerebbero le regole di integrità di Netty.
+     * Quando abilitato, il buffer restituito sarà incapsulato in un Mockito Spy per forzare il ritorno
+     * di valori illegali (es. readerIndex > writerIndex) senza sollevare eccezioni in fase di setup.
+     *
+     * @return L'istanza corrente del builder.
      */
     public ByteBufTestBuilder withInvalidIndices() {
         this.allowInvalidIndices = true;
@@ -85,13 +127,23 @@ public class ByteBufTestBuilder {
     }
 
     /**
-     * Se true, il buffer verrà rilasciato (refCnt = 0) prima di essere restituito.
+     * Specifica che il buffer restituito deve essere già in stato "released" (refCnt = 0).
+     *
+     * @return L'istanza corrente del builder.
      */
     public ByteBufTestBuilder asReleased() {
         this.released = true;
         return this;
     }
 
+    /**
+     * Costruisce e restituisce l'istanza finale di ByteBuf configurata.
+     * Esegue la validazione dei parametri (a meno che non siano permessi indici invalidi),
+     * scrive il contenuto e applica gli indici richiesti.
+     *
+     * @return Un'istanza di ByteBuf (o uno Spy di ByteBuf se richiesti indici invalidi).
+     * @throws InvalidBuilderParameterException Se la configurazione contiene incongruenze logiche (es. writerIndex > capacity) e il flag allowInvalidIndices è false.
+     */
     public ByteBuf build() {
 
         // calcolo Capacità Finale

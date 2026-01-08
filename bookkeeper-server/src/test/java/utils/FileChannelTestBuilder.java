@@ -12,19 +12,47 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Builder pattern per la costruzione di un FileChannel
+ * Implementazione del pattern <strong>Builder</strong> per la creazione configurabile di istanze di {@link FileChannel}.
+ * <p>
+ * Questa classe è pensata per semplificare la fase di "Arrange" negli unit test e integration test,
+ * permettendo di creare file reali su disco, popolarli con dati e ottenere un canale aperto
+ * con una sintassi fluente e leggibile.
+ * </p>
+ * <p>
+ * Esempio di utilizzo:
+ * <pre>
+ * FileChannel channel = FileChannelTestBuilder.aFileChannel()
+ * .withContent("Hello World")
+ * .inReadMode()
+ * .atPosition(5)
+ * .build(tempPath);
+ * </pre>
+ * </p>
  */
 public class FileChannelTestBuilder {
-    // impostazioni di default
+    // --- Impostazioni di default ---
     private byte[] content = new byte[0];
     private long position = 0;
     private Set<StandardOpenOption> options = new HashSet<>();
     private boolean closed = false;
 
+    /**
+     * Entry point statico per iniziare la costruzione del FileChannel.
+     *
+     * @return Una nuova istanza del builder.
+     */
     public static FileChannelTestBuilder aFileChannel() {
         return new FileChannelTestBuilder();
     }
 
+    /**
+     * Definisce il contenuto testuale iniziale del file.
+     * Il testo verrà convertito in byte utilizzando la codifica UTF-8.
+     *
+     * @param text La stringa da scrivere nel file.
+     * @return L'istanza corrente del builder (Fluent API).
+     * @throws InvalidBuilderParameterException Se il testo è null.
+     */
     public FileChannelTestBuilder withContent(String text) {
         if (text == null) {
             throw new InvalidBuilderParameterException(
@@ -37,6 +65,13 @@ public class FileChannelTestBuilder {
         return this;
     }
 
+    /**
+     * Definisce il contenuto binario iniziale del file.
+     *
+     * @param content L'array di byte da scrivere nel file.
+     * @return L'istanza corrente del builder (Fluent API).
+     * @throws InvalidBuilderParameterException Se l'array è null.
+     */
     public FileChannelTestBuilder withContent(byte[] content) {
         if  (content == null) {
             throw new InvalidBuilderParameterException(
@@ -49,6 +84,13 @@ public class FileChannelTestBuilder {
         return this;
     }
 
+    /**
+     * Imposta la posizione iniziale del cursore del FileChannel.
+     *
+     * @param position La posizione (offset) in byte.
+     * @return L'istanza corrente del builder.
+     * @throws InvalidBuilderParameterException Se la posizione è negativa.
+     */
     public FileChannelTestBuilder atPosition(long position) {
         // controllo che la posizione sia >= 0
         if (position < 0) {
@@ -62,17 +104,35 @@ public class FileChannelTestBuilder {
         return this;
     }
 
+    /**
+     * Aggiunge una singola opzione di apertura personalizzata (es. {@code DSYNC}, {@code SPARSE}).
+     *
+     * @param option L'opzione {@link StandardOpenOption} da aggiungere.
+     * @return L'istanza corrente del builder.
+     */
     public FileChannelTestBuilder withOption(StandardOpenOption option) {
         this.options.add(option);
         return this;
     }
 
+    /**
+     * Configura il canale in modalità sola lettura (READ).
+     * NB: Rimuove eventuali altre opzioni precedentemente impostate.
+     *
+     * @return L'istanza corrente del builder.
+     */
     public FileChannelTestBuilder inReadMode() {
         this.options.clear();
         this.options.add(StandardOpenOption.READ);
         return this;
     }
 
+    /**
+     * Configura il canale in modalità scrittura(WRITE + CREATE).
+     * NB: Rimuove eventuali altre opzioni precedentemente impostate.
+     *
+     * @return L'istanza corrente del builder.
+     */
     public FileChannelTestBuilder inWriteMode() {
         this.options.clear();
         this.options.add(StandardOpenOption.WRITE);
@@ -80,6 +140,12 @@ public class FileChannelTestBuilder {
         return this;
     }
 
+    /**
+     * Configura il canale in modalità lettura e scrittura (READ + WRITE + CREATE).
+     * NB: Rimuove eventuali altre opzioni precedentemente impostate.
+     *
+     * @return L'istanza corrente del builder.
+     */
     public FileChannelTestBuilder inReadWriteMode() {
         this.options.clear();
         this.options.add(StandardOpenOption.READ);
@@ -88,11 +154,24 @@ public class FileChannelTestBuilder {
         return this;
     }
 
+    /**
+     * Specifica che il canale restituito dovrà essere già chiuso.
+     *
+     * @return L'istanza corrente del builder.
+     */
     public FileChannelTestBuilder closed() {
         this.closed = true;
         return this;
     }
 
+    /**
+     * Costruisce e restituisce l'istanza di {@link FileChannel} basata sulla configurazione accumulata.
+     *
+     * @param targetFile Il percorso del file su disco da utilizzare come supporto.
+     * @return Un'istanza configurata di {@link FileChannel}.
+     * @throws IOException Se si verifica un errore di I/O durante la creazione o scrittura del file.
+     * @throws InvalidBuilderParameterException Se la configurazione è invalida.
+     */
     public FileChannel build(Path targetFile) throws IOException {
 
         // controllo del path
@@ -146,5 +225,4 @@ public class FileChannelTestBuilder {
 
         return channel;
     }
-
 }

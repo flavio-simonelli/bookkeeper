@@ -10,20 +10,33 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Fornisce istanze di ByteBufAllocator configurate per vari scenari di test.
+ * Implementazione del pattern <strong>Object Mother</strong> per {@link ByteBufAllocator}.
+ * <p>
+ * Questa classe factory fornisce istanze di allocatori pre-configurate (anche tramite l'utilizzo di Mockito)
+ * per simulare vari scenari limite, inclusi casi di successo ("happy path") e casi di fallimento
+ * (es. allocazioni insufficienti, puntatori nulli, buffer deallocati).
+ * </p>
  */
 public class ByteBufAllocatorMother {
 
     /**
-     * Restituisce un Allocator valido e corretto.
+     * Restituisce un'istanza reale e funzionante di {@link ByteBufAllocator}.
+     * Utilizza l'implementazione Unpooled di default di Netty.
+     * Da utilizzare per i test funzionali standard dove non sono attesi errori di allocazione.
+     *
+     * @return Un {@code ByteBufAllocator} valido.
      */
     public static ByteBufAllocator createValidAllocator() {
         return UnpooledByteBufAllocator.DEFAULT;
     }
 
     /**
-     * Restituisce un Allocator valido ma non corretto.
-     * Se viene richiesto un buffer ritorna sempre NULL.
+     * Restituisce un allocatore Mock configurato per fallire silenziosamente.
+     * Ogni richiesta di allocazione di un buffer (heap o direct) restituirà {@code null}.
+     * Utile per testare la robustezza del codice in caso di fallimento totale dell'allocatore
+     * o per verificare la gestione delle {@code NullPointerException}.
+     *
+     * @return Un allocatore mock che restituisce sempre {@code null}.
      */
     public static ByteBufAllocator createNullAllocator() {
         ByteBufAllocator allocator = mock(ByteBufAllocator.class);
@@ -33,16 +46,23 @@ public class ByteBufAllocatorMother {
     }
 
     /**
-     * Restituisce un Allocator valido ma non corretto.
-     * Se viene richiesto un buffer di N bytes, viene restituito un buffer di N-1 bytes.
+     * Restituisce un allocatore difettoso che simula un errore di calcolo dimensionale ("off-by-one").
+     * Se viene richiesto un buffer di capacità {@code N}, questo allocatore ne restituirà uno di capacità {@code N-1}.
+     * Questo scenario è critico per verificare che il codice sotto test controlli effettivamente
+     * la capacità del buffer ricevuto (o gestisca correttamente i {@code IndexOutOfBoundsException}).
+     *
+     * @return Un allocatore mock che restituisce buffer sottodimensionati.
      */
     public static ByteBufAllocator createUndersizedAllocator() {
         ByteBufAllocator allocator = mock(ByteBufAllocator.class);
         Answer<ByteBuf> undersizedAnswer = invocation -> {
             int reqCap = (Integer) invocation.getArguments()[0];
 
-            // Se è richiesto <= 0, Netty lancia eccezione
-            // Se è richiesto >= 1, ritorniamo N-1.
+            /*
+             * Logica di simulazione errore:
+             * - Se reqCap <= 0: lasciamo che Netty sollevi eccezione (comportamento standard).
+             * - Se reqCap >= 1: allochiamo un buffer reale ma con size ridotta (reqCap - 1).
+             */
             return UnpooledByteBufAllocator.DEFAULT.buffer(reqCap-1);
         };
 
@@ -53,7 +73,12 @@ public class ByteBufAllocatorMother {
     }
 
     /**
-     * Restituisce un buffer che è già stato rilasciato e quindi deallocato dal Netty Pool (refCnt = 0).
+     * Restituisce un allocatore che fornisce buffer già marcati come rilasciati (deallocati).
+     * Il {@link ByteBuf} restituito avrà un reference count pari a 0.
+     * Qualsiasi tentativo di utilizzo di questo buffer da parte del codice sotto test dovrebbe
+     * scatenare una {@link io.netty.util.IllegalReferenceCountException}.
+     *
+     * @return Un allocatore mock che restituisce buffer "zombie" (già rilasciati).
      */
     public static ByteBufAllocator createDeallocatedAllocator() {
         ByteBufAllocator allocator = mock(ByteBufAllocator.class);
