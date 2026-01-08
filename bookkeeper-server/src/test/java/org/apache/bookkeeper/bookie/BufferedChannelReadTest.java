@@ -2,11 +2,13 @@ package org.apache.bookkeeper.bookie;
 
 import exceptions.IllegalTestConfigurationException;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import utils.ByteBufAllocatorMother;
 import utils.ByteBufTestBuilder;
 import utils.FileChannelTestBuilder;
 
@@ -19,7 +21,6 @@ import java.util.Collection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class BufferedChannelReadTest {
@@ -45,6 +46,7 @@ public class BufferedChannelReadTest {
     // Fixtures
     private BufferedChannel bufferedChannel;
     private FileChannel fileChannel;
+    private ByteBufAllocator allocator;
     private ByteBuf destBuffer;
     private File tempFile;
 
@@ -53,6 +55,7 @@ public class BufferedChannelReadTest {
 
     // param
     private final ChannelType channelTypeParam;
+    private final AllocatorType allocatorParam;
     private final int readCapacityParam;
     private final int lengthParam;
     private final DestType destTypeParam;
@@ -74,7 +77,15 @@ public class BufferedChannelReadTest {
         NULL,
         RELEASED,
         VALID,
+        INVALIDINDEX,
     }
+
+    public enum AllocatorType {
+        VALID,
+        NULL_RETURN,
+        DEALLOC_RETURN,
+    }
+
     // ChannelType, readCapacity, length, DestType, destCapacity, pos, expectedValue, expectedException
     public BufferedChannelReadTest(ChannelType channelType,
                                    int readCapacity,
@@ -82,6 +93,7 @@ public class BufferedChannelReadTest {
                                    DestType destType,
                                    int destCap,
                                    long pos,
+                                   AllocatorType allocatorParam,
                                    Integer expectedReturnValue,
                                    Class<? extends Exception> expectedException) {
         this.channelTypeParam = channelType;
@@ -90,6 +102,7 @@ public class BufferedChannelReadTest {
         this.destTypeParam = destType;
         this.destCapacityParam = destCap;
         this.posParam = pos;
+        this.allocatorParam = allocatorParam;
         this.expectedReturnValue = expectedReturnValue;
         this.expectedException = expectedException;
 
@@ -108,33 +121,47 @@ public class BufferedChannelReadTest {
     }
 
     // Parametri dei casi di test
-    @Parameterized.Parameters(name = "Test {index}: ChannelType={0}, ReadCap={1}, Length={2}, DestType={3}, DestCap={4}, Pos={5}, ExpValue={6}, ExpException={7}")
+    @Parameterized.Parameters(name = "Test {index}: ChannelType={0}, ReadCap={1}, Length={2}, DestType={3}, DestCap={4}, Pos={5}, AllocatorType={6}, ExpValue={7}, ExpException={8}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                // ChannelType, readCapacity, length, DestType, destCapacity, pos, expectedValue, expectedException
-                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, 0L, null, Exception.class},
-                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, (long) FC_SIZE, 2, null},
-                {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, 0L, 0, null},
-                {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, (long) FC_SIZE, 0, null},
-                {ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, 0L, null, Exception.class},
-                //{ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, (long) FC_SIZE, null, Exception.class}, questa dovremmo toglierla e implementarla nel round 2 quando scopriamo che l'inizializzazione nonf a il suo lavoro
-                {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, 0L, 0, null},
-                {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, (long) FC_SIZE, 0, null},
-                {ChannelType.OPEN_RW, 0, 2, DestType.VALID, 2, 0L, null, Exception.class},
-                {ChannelType.OPEN_RW, 0, 0, DestType.VALID, 0, 0L, 0, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, 0, null},
-                //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, null, Exception.class}, ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, 2, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 2), 2, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) FC_SIZE, 2, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 2), 2, null},
-                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), 1, null}, si pensava avesse restituito correttamente il primo byte richiesto invece lancia eccezinoe IO read past EOF
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE + 1), null, Exception.class}
+                // ChannelType, readCapacity, length, DestType, destCapacity, pos, allocatorType, expectedValue, expectedException
+                // first iteration
+                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
+                {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                //{ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class}, // il test dovrebbe lanciare una eccezione invece restituisce i dati letti
+                {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 0, 0, DestType.VALID, 0, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.INVALIDINDEX, 2, 0L, AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 1, 0, DestType.INVALIDINDEX, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.INVALIDINDEX, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
+                //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class}, // ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 2), AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 1), AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 2), AllocatorType.VALID, 2, null},
+                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, null}, // si pensava avesse restituito correttamente il primo byte richiesto invece lancia eccezinoe IO read past EOF
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE), AllocatorType.VALID, null, Exception.class},
+                // second iteration correction
+                {ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, null, Exception.class},
+                // second iteration new
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, null, Exception.class},
+                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
         });
     }
 
@@ -147,10 +174,23 @@ public class BufferedChannelReadTest {
                 return null;
             case RELEASED:
                 return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).asReleased().build();
+            case INVALIDINDEX:
+                return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).withInvalidIndices().withWriterIndex(-1).build();
             case VALID:
                 return ByteBufTestBuilder.aByteBufTestBuilder().withCapacity(capacity).build();
         }
         throw new IllegalTestConfigurationException("Unsupported dest type: " + type);
+    }
+
+    private ByteBufAllocator allocatorFixtureDirector(AllocatorType type) {
+        switch (type) {
+            case VALID :
+            case DEALLOC_RETURN:
+                return ByteBufAllocatorMother.createValidAllocator(); // nel caso di dealloc_return dobbiamo andare successivamente a deallocare il buffer di lettura
+            case NULL_RETURN:
+                return ByteBufAllocatorMother.createNullAllocator();
+        }
+        throw new IllegalTestConfigurationException("bytebufallocator non supportato");
     }
 
     @Before
@@ -167,12 +207,17 @@ public class BufferedChannelReadTest {
         } else {
             baseFc = FileChannelTestBuilder.aFileChannel().inReadWriteMode().withContent(DISK_DATA).build(tempFile.toPath());
         }
+        // Init ByteBufferAllocator
+        this.allocator = allocatorFixtureDirector(allocatorParam);
         // Init BufferedChannel
-        this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(UnpooledByteBufAllocator.DEFAULT).withFileChannel(baseFc).withWriteCapacity(WB_SIZE * 2).withReadCapacity(readCapacityParam).withInjectedWriteBufferContent(MEM_DATA).build();
+        this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(allocator).withFileChannel(baseFc).withWriteCapacity(WB_SIZE * 2).withReadCapacity(readCapacityParam).withInjectedWriteBufferContent(MEM_DATA).build();
         // Setup Stato Finale Canale
         this.fileChannel = baseFc;
         if (channelTypeParam == ChannelType.CLOSED) {
             this.fileChannel.close();
+        }
+        if (allocatorParam == AllocatorType.DEALLOC_RETURN) {
+            bufferedChannel.readBuffer.release();
         }
         // Init Buffer Destinazione (Usa Type + Capacity)
         this.destBuffer = destFixtureDirector(destTypeParam, destCapacityParam);
@@ -210,48 +255,6 @@ public class BufferedChannelReadTest {
         }
     }
 
-    /**
-    @Test
-    public void testRead() {
-        try {
-            // Esecuzione
-            int bytesRead = bufferedChannel.read(destBuffer, posParam, lengthParam);
-
-            // Verifica Assenza Eccezione
-            if (expectedException != null) {
-                fail("Ci si aspettava l'eccezione: " + expectedException.getSimpleName());
-            }
-
-            // Verifica Valore Ritorno
-            if (expectedReturnValue != null) {
-                assertEquals("Bytes letti errati", expectedReturnValue.intValue(), bytesRead);
-            }
-
-            // Verifica Contenuto Buffer
-            if (bytesRead > 0 && expectedBytes != null) {
-                byte[] actualBytes = new byte[bytesRead];
-                // Leggiamo senza alterare i puntatori del ByteBuf
-                destBuffer.getBytes(0, actualBytes);
-
-                assertArrayEquals("Contenuto buffer errato alla pos " + posParam,
-                        expectedBytes, actualBytes);
-            }
-
-        } catch (Throwable t) {
-            // Verifica Eccezione Attesa
-            if (expectedException == null) {
-                t.printStackTrace();
-                fail("Eccezione inattesa: " + t.getClass().getSimpleName() + " - " + t.getMessage());
-            } else {
-                if (!expectedException.isAssignableFrom(t.getClass())) {
-                    fail("Eccezione errata. Attesa: " + expectedException.getSimpleName() +
-                            ", Ottenuta: " + t.getClass().getSimpleName());
-                }
-            }
-        }
-    }
-     **/
-
     @After
     public void cleanup() {
         try {
@@ -259,6 +262,7 @@ public class BufferedChannelReadTest {
             if (fileChannel != null && fileChannel.isOpen()) fileChannel.close();
             if (destBuffer != null && destBuffer.refCnt() > 0) destBuffer.release();
             if (tempFile != null) tempFile.delete();
+            if (allocator != null) allocator=null;
         } catch (Exception e) {
             e.printStackTrace();
         }
