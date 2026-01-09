@@ -462,7 +462,6 @@
                   <plugin>
                       <groupId>org.codehaus.mojo</groupId>
                       <artifactId>build-helper-maven-plugin</artifactId>
-                      <version>3.6.1</version>
                       <executions>
                           <execution>
                               <id>add-evosuite-tests</id>
@@ -489,7 +488,6 @@
                   <plugin>
                       <groupId>org.codehaus.mojo</groupId>
                       <artifactId>build-helper-maven-plugin</artifactId>
-                      <version>3.6.1</version>
                       <executions>
                           <execution>
                               <id>add-manual-tests</id>
@@ -516,7 +514,6 @@
                   <plugin>
                       <groupId>org.codehaus.mojo</groupId>
                       <artifactId>build-helper-maven-plugin</artifactId>
-                      <version>3.6.1</version>
                       <executions>
                           <execution>
                               <id>add-llm-tests</id>
@@ -543,7 +540,6 @@
                   <plugin>
                       <groupId>org.codehaus.mojo</groupId>
                       <artifactId>build-helper-maven-plugin</artifactId>
-                      <version>3.6.1</version>
                       <executions>
                           <execution>
                               <id>add-randoop-tests</id>
@@ -573,7 +569,6 @@
                   <plugin>
                       <groupId>org.codehaus.mojo</groupId>
                       <artifactId>build-helper-maven-plugin</artifactId>
-                      <version>3.6.1</version>
                       <executions>
                           <execution>
                               <id>add-all-tests</id>

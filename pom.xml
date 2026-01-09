@@ -211,6 +211,7 @@
     <UBUNTU_SECURITY_MIRROR>http://security.ubuntu.com/ubuntu/</UBUNTU_SECURITY_MIRROR>
 
     <!-- add by Flavio -->
+    <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <skipJacoco>false</skipJacoco>
     <pitest-maven-plugin.version>1.17.4</pitest-maven-plugin.version>
@@ -1021,6 +1022,11 @@
             <groupId>org.pitest</groupId>
             <artifactId>pitest-maven</artifactId>
             <version>${pitest-maven-plugin.version}</version>
+        </plugin>
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>${build-helper-maven-plugin.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
