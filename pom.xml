@@ -839,13 +839,13 @@
         <version>${randoop.version}</version>
         <scope>test</scope>
       </dependency>
-        <dependency>
-            <groupId>org.evosuite</groupId>
-            <artifactId>evosuite-standalone-runtime</artifactId>
-            <version>${evosuiteVersion}</version>
-            <scope>test</scope>
-        </dependency>
-        -->
+      -->
+      <dependency>
+        <groupId>org.evosuite</groupId>
+        <artifactId>evosuite-standalone-runtime</artifactId>
+        <version>${evosuiteVersion}</version>
+        <scope>test</scope>
+      </dependency>
 
       <!-- benchmark dependencies -->
       <dependency>
@@ -1003,6 +1003,17 @@
             <skip>true</skip>
             <doclint>none</doclint>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.evosuite.plugins</groupId>
+          <artifactId>evosuite-maven-plugin</artifactId>
+          <version>${evosuiteVersion}</version>
+          <executions>
+            <execution>
+              <goals> <goal>prepare</goal> </goals>
+              <phase>process-test-classes</phase>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
             <groupId>org.pitest</groupId>
@@ -1486,5 +1497,25 @@
         <UBUNTU_SECURITY_MIRROR>${env.UBUNTU_SECURITY_MIRROR}</UBUNTU_SECURITY_MIRROR>
       </properties>
     </profile>
+    <!-- Added by Flavio -->
+      <profile>
+          <id>evosuite</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-surefire-plugin</artifactId>
+                      <configuration>
+                          <properties>
+                              <property>
+                                  <name>listener</name>
+                                  <value>org.evosuite.runtime.InitializingListener</value>
+                              </property>
+                          </properties>
+                      </configuration>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
   </profiles>
 </project>

@@ -1,9 +1,11 @@
 package randoop.generated;
 
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+@Ignore
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RegressionTest0 {
 

@@ -22,7 +22,6 @@ import java.util.Collection;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-
 @RunWith(Parameterized.class)
 public class BufferedChannelReadTest {
 
