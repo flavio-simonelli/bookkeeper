@@ -22,6 +22,7 @@ import java.util.Collection;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+
 @RunWith(Parameterized.class)
 public class BufferedChannelReadTest {
 
@@ -95,6 +96,14 @@ public class BufferedChannelReadTest {
                                    AllocatorType allocatorParam,
                                    Integer expectedReturnValue,
                                    Class<? extends Exception> expectedException) {
+        // controllo correttezza scrittura dei parametri
+        if (destType == DestType.VALID && expectedReturnValue == null) {
+            throw new IllegalTestConfigurationException("Se creiamo un buffer di destinazione valido dobbiamo controllare il suo contenuto alla fine del test indipendentemente se ci aspettiamo una eccezione!");
+        }
+        if (expectedException == null &&  expectedReturnValue == null) {
+            throw new IllegalTestConfigurationException("Se non ci aspettiamo nessuna eccezione ci dobbiamo aspettare un valore di ritorno");
+        }
+
         this.channelTypeParam = channelType;
         this.readCapacityParam = readCapacity;
         this.lengthParam = length;
@@ -125,17 +134,17 @@ public class BufferedChannelReadTest {
         return Arrays.asList(new Object[][]{
                 // ChannelType, readCapacity, length, DestType, destCapacity, pos, allocatorType, expectedValue, expectedException
                 // first iteration
-                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
                 {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
-                //{ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class}, // il test dovrebbe lanciare una eccezione invece restituisce i dati letti
+                {ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
+                //{ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, Exception.class}, // il test dovrebbe lanciare una eccezione invece restituisce i dati letti
                 {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 0, 0, DestType.VALID, 0, 0L, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
@@ -143,21 +152,21 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class}, // ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 2), AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 1), AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 2), AllocatorType.VALID, 2, null},
                 //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, null}, // si pensava avesse restituito correttamente il primo byte richiesto invece lancia eccezinoe IO read past EOF
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE), AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE), AllocatorType.VALID, 0, Exception.class},
                 // second iteration correction
                 {ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, Exception.class},
                 // second iteration new
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, null, Exception.class},
-                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
-                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, 0, Exception.class},
+                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
+                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
         });
     }
 
@@ -219,34 +228,43 @@ public class BufferedChannelReadTest {
 
     @Test
     public void testRead() throws IOException {
-        // Gestione Eccezione Attesa (Fail-fast)
         if (expectedException != null) {
+            // Caso: Eccezione Attesa
             assertThatThrownBy(() -> bufferedChannel.read(destBuffer, posParam, lengthParam))
                     .as("Ci si aspettava l'eccezione %s", expectedException.getSimpleName())
                     .isInstanceOf(expectedException);
-            return; // Fine del test per il caso errore
+
+            // Se il buffer è valido, verifichiamo comunque il suo stato post-eccezione
+            if (destTypeParam == DestType.VALID && destBuffer != null && expectedReturnValue != null) {
+                // Verifica il contenuto dei byte presenti
+                verifyBufferContent();
+            }
+        } else {
+            // Caso: Successo
+            int bytesRead = bufferedChannel.read(destBuffer, posParam, lengthParam);
+            // verifica il valore di ritorno
+            if (expectedReturnValue != null) {
+                assertThat(bytesRead)
+                        .as("Il numero di byte letti non corrisponde al valore atteso")
+                        .isEqualTo(expectedReturnValue);
+            }
+            // Verifica il contenuto dei byte presenti
+            if (destTypeParam == DestType.VALID) {
+                verifyBufferContent();
+            }
         }
+    }
 
-        // Esecuzione Eccezione non attesa
-        int bytesRead = bufferedChannel.read(destBuffer, posParam, lengthParam);
-
-        // Verifica Valore di Ritorno (Bytes letti)
-        if (expectedReturnValue != null) {
-            assertThat(bytesRead)
-                    .as("Il numero di byte letti non corrisponde al valore atteso")
-                    .isEqualTo(expectedReturnValue);
-        }
-
-        // Verifica Contenuto del Buffer di Destinazione
-        if (bytesRead > 0 && expectedBytes != null) {
-            byte[] actualBytes = new byte[bytesRead];
-            // Leggiamo senza alterare i puntatori (readerIndex/writerIndex) del ByteBuf
-            destBuffer.getBytes(0, actualBytes);
-
-            assertThat(actualBytes)
-                    .as("Contenuto del buffer di destinazione errato alla posizione %d", posParam)
-                    .containsExactly(expectedBytes);
-        }
+    /**
+     * Metodo helper per il confronto dei dati attesi con quelli ottenuti
+     */
+    private void verifyBufferContent() {
+        int length = destBuffer.readableBytes();
+        byte[] actualBytes = new byte[length];
+        destBuffer.readBytes(actualBytes);
+        assertThat(actualBytes)
+                .as("Contenuto del buffer di destinazione errato")
+                .containsExactly(expectedBytes);
     }
 
     @After
