@@ -212,7 +212,9 @@
 
     <!-- add by Flavio -->
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <skipJacoco>false</skipJacoco>
     <pitest-maven-plugin.version>1.17.4</pitest-maven-plugin.version>
+    <skipPit>false</skipPit>
     <!--<randoop.version>4.3.4</randoop.version>-->
     <evosuiteVersion>1.2.0</evosuiteVersion>
     <sonar.organization>flavio-simonelli</sonar.organization>

@@ -1,4 +1,4 @@
-package utils;
+package org.apache.bookkeeper.testutils;
 
 import exceptions.InvalidBuilderParameterException;
 import io.netty.buffer.ByteBuf;

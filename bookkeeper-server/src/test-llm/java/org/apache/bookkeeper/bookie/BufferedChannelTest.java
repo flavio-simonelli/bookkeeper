@@ -8,14 +8,10 @@ import io.netty.buffer.Unpooled;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.*;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +24,6 @@ import static org.mockito.Mockito.*;
  * Comprehensive JUnit 4 Test Suite for BufferedChannel.
  * Validation Level: EXTREME (approx 60 tests).
  */
-@Ignore
 public class BufferedChannelTest {
 
     private FileChannel mockFileChannel;

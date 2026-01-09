@@ -7,8 +7,8 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import utils.ByteBufAllocatorMother;
-import utils.FileChannelTestBuilder;
+import org.apache.bookkeeper.testutils.ByteBufAllocatorMother;
+import org.apache.bookkeeper.testutils.FileChannelTestBuilder;
 
 import java.io.File;
 import java.io.IOException;

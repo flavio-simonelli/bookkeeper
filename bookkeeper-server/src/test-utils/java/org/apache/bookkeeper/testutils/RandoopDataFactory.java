@@ -1,4 +1,4 @@
-package utils;
+package org.apache.bookkeeper.testutils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;

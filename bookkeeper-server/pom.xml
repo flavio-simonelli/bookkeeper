@@ -282,6 +282,9 @@
                     </configuration>
                 </execution>
             </executions>
+            <configuration>
+                <skip>${skipJacoco}</skip>
+            </configuration>
         </plugin>
         <plugin>
             <groupId>org.pitest</groupId>
@@ -290,7 +293,23 @@
                 <targetClasses>
                     <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
                 </targetClasses>
+                <skip>${skipPit}</skip>
+                <threads>1</threads>
+                <outputFormats>
+                    <param>XML</param>
+                    <param>HTML</param>
+                </outputFormats>
+                <exportLineCoverage>true</exportLineCoverage>
             </configuration>
+            <executions>
+                <execution>
+                    <id>pitest-execution</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>mutationCoverage</goal>
+                    </goals>
+                </execution>
+            </executions>
         </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -436,6 +455,150 @@
       </build>
     </profile>
       <!-- Added by Flavio -->
+      <profile>
+          <id>tests-evosuite</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>build-helper-maven-plugin</artifactId>
+                      <version>3.6.1</version>
+                      <executions>
+                          <execution>
+                              <id>add-evosuite-tests</id>
+                              <phase>generate-test-sources</phase>
+                              <goals>
+                                  <goal>add-test-source</goal>
+                              </goals>
+                              <configuration>
+                                  <sources>
+                                      <source>${project.basedir}/src/test-utils/java</source>
+                                      <source>${project.basedir}/src/test-evosuite/java</source>
+                                  </sources>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
+      <profile>
+          <id>tests-manual</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>build-helper-maven-plugin</artifactId>
+                      <version>3.6.1</version>
+                      <executions>
+                          <execution>
+                              <id>add-manual-tests</id>
+                              <phase>generate-test-sources</phase>
+                              <goals>
+                                  <goal>add-test-source</goal>
+                              </goals>
+                              <configuration>
+                                  <sources>
+                                      <source>${project.basedir}/src/test-utils/java</source>
+                                      <source>${project.basedir}/src/test-manual/java</source>
+                                  </sources>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
+      <profile>
+          <id>tests-llm</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>build-helper-maven-plugin</artifactId>
+                      <version>3.6.1</version>
+                      <executions>
+                          <execution>
+                              <id>add-llm-tests</id>
+                              <phase>generate-test-sources</phase>
+                              <goals>
+                                  <goal>add-test-source</goal>
+                              </goals>
+                              <configuration>
+                                  <sources>
+                                      <source>${project.basedir}/src/test-utils/java</source>
+                                      <source>${project.basedir}/src/test-llm/java</source>
+                                  </sources>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
+      <profile>
+          <id>tests-randoop</id>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>build-helper-maven-plugin</artifactId>
+                      <version>3.6.1</version>
+                      <executions>
+                          <execution>
+                              <id>add-randoop-tests</id>
+                              <phase>generate-test-sources</phase>
+                              <goals>
+                                  <goal>add-test-source</goal>
+                              </goals>
+                              <configuration>
+                                  <sources>
+                                      <source>${project.basedir}/src/test-utils/java</source>
+                                      <source>${project.basedir}/src/test-randoop/java</source>
+                                  </sources>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
+      <profile>
+          <id>tests-all</id>
+          <activation>
+              <activeByDefault>true</activeByDefault>
+          </activation>
+          <build>
+              <plugins>
+                  <plugin>
+                      <groupId>org.codehaus.mojo</groupId>
+                      <artifactId>build-helper-maven-plugin</artifactId>
+                      <version>3.6.1</version>
+                      <executions>
+                          <execution>
+                              <id>add-all-tests</id>
+                              <phase>generate-test-sources</phase>
+                              <goals>
+                                  <goal>add-test-source</goal>
+                              </goals>
+                              <configuration>
+                                  <sources>
+                                      <source>${project.basedir}/src/test-utils/java</source>
+                                      <source>${project.basedir}/src/test-manual/java</source>
+                                      <source>${project.basedir}/src/test-llm/java</source>
+                                      <source>${project.basedir}/src/test-randoop/java</source>
+                                      <source>${project.basedir}/src/test-evosuite/java</source>
+                                  </sources>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+              </plugins>
+          </build>
+      </profile>
+
+
+
       <!--
       <profile>
           <id>generate-randoop</id>

@@ -3,15 +3,14 @@ package org.apache.bookkeeper.bookie;
 import exceptions.IllegalTestConfigurationException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.UnpooledByteBufAllocator;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import utils.ByteBufAllocatorMother;
-import utils.ByteBufTestBuilder;
-import utils.FileChannelTestBuilder;
+import org.apache.bookkeeper.testutils.ByteBufAllocatorMother;
+import org.apache.bookkeeper.testutils.ByteBufTestBuilder;
+import org.apache.bookkeeper.testutils.FileChannelTestBuilder;
 
 import java.io.File;
 import java.io.IOException;
