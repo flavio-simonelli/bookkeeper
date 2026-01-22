@@ -1,6 +1,6 @@
 package org.apache.bookkeeper.testutils;
 
-import exceptions.InvalidBuilderParameterException;
+import org.apache.bookkeeper.exceptions.InvalidBuilderParameterException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 

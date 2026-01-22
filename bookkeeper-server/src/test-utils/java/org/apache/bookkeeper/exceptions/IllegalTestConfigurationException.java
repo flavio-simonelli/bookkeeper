@@ -1,4 +1,4 @@
-package exceptions;
+package org.apache.bookkeeper.exceptions;
 
 /**
  * Eccezione base per errori logici nella configurazione dell'ambiente di test.
@@ -8,7 +8,7 @@ package exceptions;
  * configurazioni impossibili richieste a un Object Mother o parametri passati ai parametrized test).
  * </p>
  */
-public class IllegalTestConfigurationException extends RuntimeException {
+public class IllegalTestConfigurationException extends IllegalArgumentException {
 
     /**
      * Costruisce l'eccezione con un messaggio descrittivo.

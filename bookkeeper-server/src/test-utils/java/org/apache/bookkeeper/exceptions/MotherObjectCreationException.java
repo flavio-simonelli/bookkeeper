@@ -1,4 +1,4 @@
-package exceptions;
+package org.apache.bookkeeper.exceptions;
 
 /**
  * Segnala che un <strong>Object Mother</strong> non è riuscito a istanziare una specifica <em>test fixture</em>

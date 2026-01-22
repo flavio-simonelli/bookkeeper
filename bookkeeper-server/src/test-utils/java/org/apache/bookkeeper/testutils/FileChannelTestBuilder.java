@@ -1,6 +1,6 @@
 package org.apache.bookkeeper.testutils;
 
-import exceptions.InvalidBuilderParameterException;
+import org.apache.bookkeeper.exceptions.InvalidBuilderParameterException;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;

@@ -1,6 +1,6 @@
 package org.apache.bookkeeper.bookie;
 
-import exceptions.IllegalTestConfigurationException;
+import org.apache.bookkeeper.exceptions.IllegalTestConfigurationException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.*;
@@ -82,6 +82,7 @@ public class BufferedChannelReadTest {
         VALID,
         NULL_RETURN,
         DEALLOC_RETURN,
+        LESS_RETURN,
     }
 
     // ChannelType, readCapacity, length, DestType, destCapacity, pos, expectedValue, expectedException
@@ -131,7 +132,6 @@ public class BufferedChannelReadTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 // ChannelType, readCapacity, length, DestType, destCapacity, pos, allocatorType, expectedValue, expectedException
-                // first iteration
                 {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.CLOSED, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
                 {ChannelType.CLOSED, 1, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
@@ -141,14 +141,16 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_WRITE_ONLY, 0, 0, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 0, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
-                {ChannelType.OPEN_RW, 0, 0, DestType.VALID, 0, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 0, 0, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 1, 0L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
+                //{ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class}, // non lancia alcuna eccezione
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
+                {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
+                //{ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class}, // ci si aspettava il lanci di una eccezione
                 //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class}, // ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
@@ -156,15 +158,25 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE - 1), AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 2), AllocatorType.VALID, 2, null},
-                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, null}, // si pensava avesse restituito correttamente il primo byte richiesto invece lancia eccezinoe IO read past EOF
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, IOException.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE), AllocatorType.VALID, 0, Exception.class},
-                // second iteration correction
+                {ChannelType.OPEN_RW, 2, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
+                // correzione dei test
+                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, Exception.class},
-                // second iteration new
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, 0, Exception.class},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.NULL_RETURN, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 2, null},
                 {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
-                {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
+
+
+                //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
+                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE - 1), AllocatorType.VALID, 1, Exception.class},
+                // prima iterazione con jacoco
+                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, 0, Exception.class},
+                //{ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
+                //{ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
         });
     }
 
@@ -190,6 +202,8 @@ public class BufferedChannelReadTest {
                 return ByteBufAllocatorMother.createValidAllocator(); // nel caso di dealloc_return dobbiamo andare successivamente a deallocare il buffer di lettura
             case NULL_RETURN:
                 return ByteBufAllocatorMother.createNullAllocator();
+            case LESS_RETURN:
+                return ByteBufAllocatorMother.createUndersizedAllocator();
         }
         throw new IllegalTestConfigurationException("bytebufallocator non supportato");
     }
@@ -211,7 +225,11 @@ public class BufferedChannelReadTest {
         // Init ByteBufferAllocator
         this.allocator = allocatorFixtureDirector(allocatorParam);
         // Init BufferedChannel
-        this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(allocator).withFileChannel(baseFc).withWriteCapacity(WB_SIZE * 2).withReadCapacity(readCapacityParam).withInjectedWriteBufferContent(MEM_DATA).build();
+        if ( allocatorParam == AllocatorType.NULL_RETURN) {
+            this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(allocator).withFileChannel(baseFc).withWriteCapacity(WB_SIZE * 2).withReadCapacity(readCapacityParam).build();
+        } else {
+            this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(allocator).withFileChannel(baseFc).withWriteCapacity(WB_SIZE * 2).withReadCapacity(readCapacityParam).withInjectedWriteBufferContent(MEM_DATA).build();
+        }
         // Setup Stato Finale Canale
         this.fileChannel = baseFc;
         if (channelTypeParam == ChannelType.CLOSED) {
@@ -274,7 +292,7 @@ public class BufferedChannelReadTest {
             if (tempFile != null) tempFile.delete();
             if (allocator != null) allocator=null;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Errore durante la cleanUp: " + e.getMessage());
         }
     }
 

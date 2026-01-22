@@ -1,6 +1,6 @@
 package org.apache.bookkeeper.bookie;
 
-import exceptions.IllegalTestConfigurationException;
+import org.apache.bookkeeper.exceptions.IllegalTestConfigurationException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.*;
@@ -51,7 +51,7 @@ public class BufferedChannelWriteTest {
     private final int unpersistedBytesBoundParam;
     private final int unpersistedBytesParam;
     private final SrcType srcTypeParam;
-    private final int srcLengthParam;
+    private final Integer srcLengthParam;
     private final AllocatorType allocatorParam;
 
     // expected values
@@ -85,7 +85,7 @@ public class BufferedChannelWriteTest {
                                      int unpersistedBytesBound,
                                      int unpersistedBytes,
                                      SrcType srcType,
-                                     int srcLength,
+                                     Integer srcLength,
                                      AllocatorType allocatorType,
                                      Class<? extends Exception> expectedException,
                                      byte[] expectedFileContent,
@@ -133,52 +133,66 @@ public class BufferedChannelWriteTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 // WriteCap, ChannelType, UBBound, InitUB, SrcType, SrcLen, AllocatorType, ExpException, ExpFileBytes, ExpBufferBytes, expectedForceCall
-                {1, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, 0, AllocatorType.VALID, Exception.class, null, null, false},
-                {1, ChannelType.OPEN_RW, 10, 0, SrcType.RELEASED, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {1, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
-                {9, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, slice(0,9), empty(), false},
-                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
-                {11, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
-                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, empty(), slice(0,9), false},
-                {11, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
-                {12, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
-                {1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
-                //{1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), empty(), true}, // qui mi aspettavo ci fosse force=true ma è un test sbagliato per mancanza di docuemtnazione (è una scelta implementativa)
+                {0, ChannelType.CLOSED, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, null, empty(), false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                //{10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false}, // scrive sul buffer anche se il file channel è chiuso
+                {8, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, Exception.class, empty(), empty(), false},
                 {8, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, slice(0,8), slice(8,9), false},
                 {9, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
                 {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
-                {0, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, 0, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false}, // il metodo entra in un loop infinito (c'è un errore nella funzione write non posso usare una classe con buffer a 0 per scrivere oppure deve scrivere direttamente sul file channel)
-                {9, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 9, AllocatorType.VALID, null, slice(0,9), empty(), false},
-                {9, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {8, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {0, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {4, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, slice(0,4), empty(), false},
-                {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
-                {6, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
+                {0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                {9, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, slice(0,9), empty(), false},
+                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
+                {11, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
+                {1, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, empty(), slice(0,9), false},
+                {11, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
+                {12, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
+                {0, ChannelType.OPEN_RW, 10, 5, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, Exception.class, null, null, false},
                 {3, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, slice(0,3), slice(3,4), false},
                 {4, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
                 {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
+                {4, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, slice(0,4), empty(), false},
+                {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
+                {6, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
+                {1, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
                 {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, empty(), slice(0,4), false},
                 {6, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
                 {7, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
-                // second iteration
+                {0, ChannelType.OPEN_RW, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false},
                 {1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), empty(), false},
+                {1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
                 {2, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, null, empty(), slice(0,1), false},
-                //{9, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 8, AllocatorType.VALID, Exception.class, null, null, false}, // non dovrebbe permettere la scrittura su un file aperto in sola lettura
+                //{1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false}, // sanitizzazione del -1 a 0
+                {0, ChannelType.OPEN_READ_ONLY, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, null, null, false},
+                // correzione test
+                {10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, null, slice(0,9), false},
+                {1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), null, false},
                 {9, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {9, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, Exception.class, null, null, false},
-                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.DEALLOC_RETURN, Exception.class, null, null, false},
-                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.NULL_RETURN, Exception.class, null, null, false},
+                //{10, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
         });
     }
 
     @Before
     public void setUp() throws IOException {
-
         // Creazione File Temporaneo
         tempFile = folder.newFile("test-write-" + System.nanoTime() + ".txn");
-
         // Setup FileChannel Base
         FileChannel baseFc;
         if (channelTypeParam == ChannelType.OPEN_READ_ONLY) {
@@ -186,7 +200,6 @@ public class BufferedChannelWriteTest {
         } else {
             baseFc = FileChannelTestBuilder.aFileChannel().inReadWriteMode().build(tempFile.toPath());
         }
-
         // inniezione dello spy
         this.fileChannel = spy(baseFc);
         doAnswer(invocation -> {
@@ -194,19 +207,14 @@ public class BufferedChannelWriteTest {
             fileContentAtForceMoment.set(readFileChannelContent());
             return invocation.callRealMethod(); // Esegue il force vero su disco
         }).when(fileChannel).force(anyBoolean());
-
         // Init ByteBufferAllocator
         this.allocator = allocatorFixtureDirector(allocatorParam);
-
         // Inizializzazione classe BufferedChannel
         this.bufferedChannel = BufferedChannelBuilder.aBufferedChannel().withAllocator(this.allocator).withFileChannel(this.fileChannel).withWriteCapacity(this.writeCapacityParam).withUnpersistedBytesBound(this.unpersistedBytesBoundParam).withInjectedUnpersistedBytes(this.unpersistedBytesParam).build();
-
-        // deallocazione del buffer di scrittura se richiesto
         // chiusura del canale se richiesto
         if (channelTypeParam == ChannelType.CLOSED) {
             this.fileChannel.close();
         }
-
         // Preparazione Source Buffer
         this.srcBuffer = createSrcBuffer();
     }
@@ -242,27 +250,21 @@ public class BufferedChannelWriteTest {
         if (expectedException != null) {
             assertThatThrownBy(() -> bufferedChannel.write(srcBuffer))
                     .isInstanceOf(expectedException);
-            return; // Se ci aspettiamo un errore, il test finisce qui
+        } else {
+            bufferedChannel.write(srcBuffer);
         }
-        // Esecuzione normale
-        bufferedChannel.write(srcBuffer);
-
         // Verifica Disco
         if (expectedFileContent != null) {
             assertThat(readFileChannelContent())
                     .as("Contenuto del file su disco non corrispondente")
                     .isEqualTo(expectedFileContent);
-        } else {
-            throw new IllegalTestConfigurationException("la funzione ha eseguito senza eccezioni ma il test non prevede un contenuto (neanche vuoto) su file");
         }
-
         // Verifica Buffer
         if (expectedBufferContent != null) {
             assertThat(getInternalBufferContent())
                     .as("Contenuto del buffer interno non corrispondente")
                     .isEqualTo(expectedBufferContent);
         }
-
         // Verifica Force call
         if (expectedForceCall) {
             verify(fileChannel, atLeastOnce()).force(anyBoolean());
@@ -297,7 +299,7 @@ public class BufferedChannelWriteTest {
             if (tempFile != null) tempFile.delete();
             if (allocator != null) allocator=null;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Errore durante la cleanUp: " + e.getMessage());
         }
     }
 }

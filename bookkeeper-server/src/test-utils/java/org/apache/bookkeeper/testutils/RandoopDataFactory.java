@@ -28,15 +28,15 @@ public class RandoopDataFactory {
      * @return Un {@code FileChannel} (istanza di {@link InMemoryFileChannel}) contenente i dati convertiti in byte.
      * @throws IOException Se si verifica un errore durante la creazione del file channel e la scrittura dei dati.
      */
-    public static FileChannel provideInMemFileChannelWithData(String data) throws IOException {
-        InMemoryFileChannel fc = new InMemoryFileChannel();
-        byte[] dataBytes = data.getBytes();
-        if (fc.write(ByteBuffer.wrap(dataBytes)) != dataBytes.length) {
-            throw new IOException("Failed to write bytes to file");
-        }
-        fc.position(0);
-        return fc;
-    }
+//    public static FileChannel provideInMemFileChannelWithData(String data) throws IOException {
+//        InMemoryFileChannel fc = new InMemoryFileChannel();
+//        byte[] dataBytes = data.getBytes();
+//        if (fc.write(ByteBuffer.wrap(dataBytes)) != dataBytes.length) {
+//            throw new IOException("Failed to write bytes to file");
+//        }
+//        fc.position(0);
+//        return fc;
+//    }
 
     /**
      * Fornisce un'istanza vuota di {@link InMemoryFileChannel}.
@@ -44,9 +44,9 @@ public class RandoopDataFactory {
      *
      * @return Un nuovo {@code FileChannel} in-memory vuoto.
      */
-    public static FileChannel provideEmptyInMemFileChannel() {
-        return new InMemoryFileChannel();
-    }
+//    public static FileChannel provideEmptyInMemFileChannel() {
+//        return new InMemoryFileChannel();
+//    }
 
     /**
      * Fornisce un {@link ByteBufAllocator} predefinito.

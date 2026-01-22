@@ -1,6 +1,6 @@
 package org.apache.bookkeeper.bookie;
 
-import exceptions.InvalidBuilderParameterException;
+import org.apache.bookkeeper.exceptions.InvalidBuilderParameterException;
 import io.netty.buffer.ByteBufAllocator;
 
 import java.io.IOException;
