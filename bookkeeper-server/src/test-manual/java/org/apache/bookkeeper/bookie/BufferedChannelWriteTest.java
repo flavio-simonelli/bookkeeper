@@ -41,7 +41,6 @@ public class BufferedChannelWriteTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    // Questo farà fallire qualsiasi test che impieghi più di 5 secondi
     @Rule
     public Timeout globalTimeout = new Timeout(5, TimeUnit.SECONDS);
 
@@ -247,11 +246,18 @@ public class BufferedChannelWriteTest {
 
     @Test
     public void testWriteOperation() throws IOException {
+        long initialPosition = bufferedChannel.position();
+        int bytesToWrite = (srcBuffer != null) ? srcBuffer.readableBytes() : 0;
+
         if (expectedException != null) {
             assertThatThrownBy(() -> bufferedChannel.write(srcBuffer))
                     .isInstanceOf(expectedException);
         } else {
             bufferedChannel.write(srcBuffer);
+
+            assertThat(bufferedChannel.position())
+                    .as("La posizione logica (position) non è avanzata correttamente dopo la scrittura")
+                    .isEqualTo(initialPosition + bytesToWrite);
         }
         // Verifica Disco
         if (expectedFileContent != null) {
