@@ -582,7 +582,7 @@
                                       <source>${project.basedir}/src/test-manual/java</source>
                                       <source>${project.basedir}/src/test-llm/java</source>
                                       <source>${project.basedir}/src/test-randoop/java</source>
-                                      <source>${project.basedir}/src/test-evosuite/java</source>
+<!--                                      <source>${project.basedir}/src/test-evosuite/java</source>-->
                                   </sources>
                               </configuration>
                           </execution>
