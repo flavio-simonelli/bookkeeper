@@ -3,7 +3,6 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import org.apache.bookkeeper.testutils.ByteBufAllocatorMother;
 import org.apache.bookkeeper.testutils.FileChannelTestBuilder;
 import org.junit.After;
 import org.junit.Ignore;
