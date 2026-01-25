@@ -624,7 +624,7 @@ public class JournalChannelCreationTest {
         File oldFile = new File(folder.getRoot(), Long.toHexString(oldLogId) + ".txn");
         File newFile = new File(folder.getRoot(), Long.toHexString(newLogId) + ".txn");
 
-        JournalTestHelper.createJournalFileWithJournalHeader(oldFile, 6, new byte[oldFileSize - 512]);
+        JournalTestHelper.createJournalFileWithJournalHeader(oldFile, 5, new byte[oldFileSize - 512]);
         assertThat(oldFile).hasSize(oldFileSize);
 
         fileChannelProvider = spy(new DefaultFileChannelProvider());
