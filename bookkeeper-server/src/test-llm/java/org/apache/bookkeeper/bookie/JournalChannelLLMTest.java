@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
+
 import org.apache.bookkeeper.conf.ServerConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
  * Comprehensive JUnit 4 test for {@link JournalChannel}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class JournalChannelTest {
+public class JournalChannelLLMTest {
 
     @Rule
     public TemporaryFolder tempDir = new TemporaryFolder();
