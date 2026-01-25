@@ -294,6 +294,7 @@
             <configuration>
                 <targetClasses>
                     <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
+                    <param>org.apache.bookkeeper.bookie.JournalChannel</param>
                 </targetClasses>
                 <skip>${skipPit}</skip>
                 <threads>1</threads>
