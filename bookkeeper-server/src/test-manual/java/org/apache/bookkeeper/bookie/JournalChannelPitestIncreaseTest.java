@@ -3,16 +3,15 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import org.apache.bookkeeper.conf.ServerConfiguration;
 import org.apache.bookkeeper.testutils.JournalTestHelper;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 public class JournalChannelPitestIncreaseTest {
