@@ -166,9 +166,8 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, 0, Exception.class},
-                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.NULL_RETURN, 0, Exception.class}, questo non solleva eccezione
-                {ChannelType.OPEN_RW, 2, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 2, null},
-                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 0, Exception.class}, questo non solleva eccezione
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.NULL_RETURN, 2, null},
+                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 2, null},
                 {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
         });
     }
@@ -205,9 +204,6 @@ public class BufferedChannelReadTest {
     public void setUp() throws IOException {
         // Setup Disco
         tempFile = folder.newFile("test-read-" + System.nanoTime() + ".log");
-        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            fos.write(DISK_DATA);
-        }
         // Setup FileChannel Base
         FileChannel baseFc;
         if (channelTypeParam == ChannelType.OPEN_WRITE_ONLY) {
