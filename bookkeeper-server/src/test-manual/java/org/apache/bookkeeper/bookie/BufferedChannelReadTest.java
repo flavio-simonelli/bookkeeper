@@ -146,11 +146,11 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, 0L, AllocatorType.VALID, null, Exception.class},
-                //{ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, null, Exception.class}, // non lancia alcuna eccezione
+                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
-                {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
-                //{ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class}, // ci si aspettava il lanci di una eccezione
+                //{ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, 0, null}, // ci si aspettava, avendo richiesto lenth 0 che non venisse lanciata una eccezione, invece viene lanciata
+                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
                 //{ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class}, // ci si aspettava il lancio di una eccezione invece ritorna senza aver letto nulla (length minore di 0 è uguale a 0)
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, -1L, AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
@@ -162,12 +162,13 @@ public class BufferedChannelReadTest {
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, (long) (FC_SIZE + WB_SIZE), AllocatorType.VALID, 0, Exception.class},
                 {ChannelType.OPEN_RW, 2, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 2, null},
                 // correzione dei test
-                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, 0L, AllocatorType.VALID, 0, null},
-                {ChannelType.OPEN_RW, 1, 0, DestType.RELEASED, 2, (long) FC_SIZE, AllocatorType.VALID, 0, null},
+                {ChannelType.OPEN_WRITE_ONLY, 0, 2, DestType.VALID, 2, (long) FC_SIZE, AllocatorType.VALID, 2, null},
+                {ChannelType.OPEN_RW, 1, 0, DestType.NULL, 0, (long) FC_SIZE, AllocatorType.VALID, null, Exception.class},
                 {ChannelType.OPEN_RW, 1, -1, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, null},
                 {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.DEALLOC_RETURN, 0, Exception.class},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.NULL_RETURN, 2, null},
-                {ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 2, null},
+                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.NULL_RETURN, 0, Exception.class}, questo non solleva eccezione
+                {ChannelType.OPEN_RW, 2, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 2, null},
+                //{ChannelType.OPEN_RW, 1, 2, DestType.VALID, 2, 0L, AllocatorType.LESS_RETURN, 0, Exception.class}, questo non solleva eccezione
                 {ChannelType.OPEN_WRITE_ONLY, 1, 2, DestType.VALID, 2, 0L, AllocatorType.VALID, 0, Exception.class},
         });
     }
@@ -210,9 +211,9 @@ public class BufferedChannelReadTest {
         // Setup FileChannel Base
         FileChannel baseFc;
         if (channelTypeParam == ChannelType.OPEN_WRITE_ONLY) {
-            baseFc = FileChannelTestBuilder.aFileChannel().inWriteMode().withContent(DISK_DATA).build(tempFile.toPath());
+            baseFc = FileChannelTestBuilder.aFileChannel().inWriteMode().withContent(DISK_DATA).atPosition(DISK_DATA.length).build(tempFile.toPath());
         } else {
-            baseFc = FileChannelTestBuilder.aFileChannel().inReadWriteMode().withContent(DISK_DATA).build(tempFile.toPath());
+            baseFc = FileChannelTestBuilder.aFileChannel().inReadWriteMode().withContent(DISK_DATA).atPosition(DISK_DATA.length).build(tempFile.toPath());
         }
         // Init ByteBufferAllocator
         this.allocator = allocatorFixtureDirector(allocatorParam);

@@ -32,7 +32,7 @@ import java.util.Set;
 public class FileChannelTestBuilder {
     // --- Impostazioni di default ---
     private byte[] content = new byte[0];
-    private long position = 0;
+    private long position = -1;
     private Set<StandardOpenOption> options = new HashSet<>();
     private boolean closed = false;
 
@@ -214,7 +214,7 @@ public class FileChannelTestBuilder {
         FileChannel channel = FileChannel.open(targetFile, options.toArray(new StandardOpenOption[0]));
 
         // posizionamento dell'indice
-        if (position != 0) {
+        if (position != -1) {
             channel.position(position);
         }
 
