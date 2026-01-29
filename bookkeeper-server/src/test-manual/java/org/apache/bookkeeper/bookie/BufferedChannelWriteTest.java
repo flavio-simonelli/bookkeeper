@@ -75,6 +75,7 @@ public class BufferedChannelWriteTest {
 
     public enum AllocatorType {
         VALID,
+        LESS_RETURN,
         NULL_RETURN,
         DEALLOC_RETURN,
     }
@@ -132,18 +133,18 @@ public class BufferedChannelWriteTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 // WriteCap, ChannelType, UBBound, InitUB, SrcType, SrcLen, AllocatorType, ExpException, ExpFileBytes, ExpBufferBytes, expectedForceCall
-                {0, ChannelType.CLOSED, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
-                {0, ChannelType.CLOSED, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
-                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, null, empty(), false},
-                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false},
-                //{10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false}, // scrive sul buffer anche se il file channel è chiuso
-                {8, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                {0, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
+                {0, ChannelType.CLOSED, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // scrive sul buffer anche se il file channel è chiuso
+                //{8, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo test fallisce perchè si pensava ad un rallback dei dati invece all'interno del buffer i dati rimangono
+                {0, ChannelType.OPEN_RW, 10, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
-                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false},
-                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, Exception.class, empty(), empty(), false},
-                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
+                //{0, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {8, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, slice(0,8), slice(8,9), false},
                 {9, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
                 {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
@@ -155,12 +156,12 @@ public class BufferedChannelWriteTest {
                 {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, empty(), slice(0,9), false},
                 {11, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.VALID, null, slice(0,10), empty(), true},
                 {12, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 11, AllocatorType.VALID, null, slice(0,11), empty(), true},
-                {0, ChannelType.OPEN_RW, 10, 5, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 10, 5, SrcType.NULL, null, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
-                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
+                //{0, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {3, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, slice(0,3), slice(3,4), false},
                 {4, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
                 {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
@@ -171,20 +172,24 @@ public class BufferedChannelWriteTest {
                 {5, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, null, empty(), slice(0,4), false},
                 {6, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 5, AllocatorType.VALID, null, slice(0,5), empty(), true},
                 {7, ChannelType.OPEN_RW, 10, 5, SrcType.VALID, 6, AllocatorType.VALID, null, slice(0,6), empty(), true},
-                {0, ChannelType.OPEN_RW, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, null, null, false},
-                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                {0, ChannelType.OPEN_RW, 0, 0, SrcType.NULL, null, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {0, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
-                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false},
+                //{0, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // questo fallisce
                 {1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), empty(), false},
                 {1, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 0, AllocatorType.VALID, null, empty(), empty(), false},
                 {2, ChannelType.OPEN_RW, 0, 0, SrcType.VALID, 1, AllocatorType.VALID, null, empty(), slice(0,1), false},
-                //{1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, null, null, false}, // sanitizzazione del valore di UBB da -1 a 0
-                {0, ChannelType.OPEN_READ_ONLY, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, null, null, false},
+                //{1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false}, // sanitizzazione del valore di UBB da -1 a 0
+                {0, ChannelType.OPEN_READ_ONLY, 10, 5, SrcType.VALID, 4, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                {1, ChannelType.OPEN_RW, 1, 0, SrcType.RELEASED, 1, AllocatorType.VALID, Exception.class, empty(), empty(), false},
                 // correzione test
-//                {10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, null, slice(0,9), false},
-//                {1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), null, false},
-//                {9, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
-                //{10, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, null, null, false},
+                {10, ChannelType.CLOSED, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, empty(), slice(0,9), false},
+                {1, ChannelType.OPEN_RW, -1, 0, SrcType.VALID, 1, AllocatorType.VALID, null, slice(0,1), empty(), false},
+                // aggiunte dovute all'inizializzazione
+                //{9, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, Exception.class, empty(), empty(), false},
+                {10, ChannelType.OPEN_READ_ONLY, 10, 0, SrcType.VALID, 9, AllocatorType.VALID, null, empty(), slice(0,9), false},
+                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.DEALLOC_RETURN, Exception.class, empty(), empty(), false},
+                {10, ChannelType.OPEN_RW, 10, 0, SrcType.VALID, 10, AllocatorType.NULL_RETURN, Exception.class, empty(), empty(), false},
         });
     }
 
@@ -240,6 +245,8 @@ public class BufferedChannelWriteTest {
                 return ByteBufAllocatorMother.createDeallocatedAllocator();
             case NULL_RETURN:
                 return ByteBufAllocatorMother.createNullAllocator();
+            case LESS_RETURN:
+                return ByteBufAllocatorMother.createUndersizedAllocator();
         }
         throw new IllegalTestConfigurationException("bytebufallocator non supportato");
     }
