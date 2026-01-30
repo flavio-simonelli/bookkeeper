@@ -2,7 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - main
+      - flavio
 
 jobs:
   build:
