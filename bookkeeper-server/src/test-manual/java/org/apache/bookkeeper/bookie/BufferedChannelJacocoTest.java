@@ -65,7 +65,6 @@ public class BufferedChannelJacocoTest {
     }
 
     /**
-     * TEST 1: Copertura righe 265 e 267.
      * Scenario:
      * - Il writeBuffer è NULL (Allocator null return).
      * - Stiamo leggendo ESATTAMENTE alla fine dei dati persistiti (EOF).
@@ -93,7 +92,6 @@ public class BufferedChannelJacocoTest {
     }
 
     /**
-     * TEST 3: Copertura riga 269.
      * Scenario:
      * - posizione di lettura minore della posizione del read buffer
      * - posizione della readBufferStartPosition + writeIndex

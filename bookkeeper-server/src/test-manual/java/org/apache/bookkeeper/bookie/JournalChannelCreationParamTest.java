@@ -134,7 +134,7 @@ public class JournalChannelCreationParamTest {
                 long actualDiskSize = raf.length();
 
                 assertThat(actualDiskSize)
-                        .as("Verifica dimensione totale file (Header + PreAlloc allineata)")
+                        .as("Verifica dimensione totale file PreAlloc allineata")
                         .isEqualTo(totalExpectedSize);
             }
         }

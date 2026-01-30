@@ -16,14 +16,6 @@ import java.nio.channels.FileChannel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Test specifici per l'aumento del punteggio di Pitest (Mutation Testing).
- * <p>
- * Questa classe contiene scenari mirati a "uccidere" mutanti specifici che sopravvivono
- * ai test funzionali standard e ai test di coverage (Jacoco), solitamente a causa
- * di coincidenze nei valori di default (es. 0 o null).
- * </p>
- */
 public class BufferedChannelPitestIncreaseTest {
 
     @Rule

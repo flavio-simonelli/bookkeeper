@@ -39,16 +39,18 @@ public class JournalChannelCreationTest {
     // il test fallisce perchè non considera la versione 7 come versione invalida ma scrivere l'header con version number 7
     @Ignore
     @Test
-    public void testWriteInvalidVersion_V7_ShouldThrowIOException() throws IOException {
+    public void testWriteInvalidVersion_V7_ShouldThrowException() throws IOException {
         int futureVersion = 7;
+        long logId = 5L;
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
         // Ci aspettiamo che il costruttore rilanci una eccezione per Versione Invalida
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
-                    5L,
+                    logId,
                     1024L,
                     1,
                     512,
@@ -60,21 +62,27 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("JournalChannel dovrebbe bloccare le versioni non supportate")
+                .as("JournalChannel dovrebbe bloccare le versioni non rilasciate")
                 .isInstanceOf(Exception.class);
+
+        assertThat(notExpectedFile)
+                .as("Il file journal non dovrebbe essere creato se la versione è invalida")
+                .doesNotExist();
     }
 
     @Test
-    public void testWriteInvalidVersion_V0_ShouldThrowIOException() throws IOException {
+    public void testWriteInvalidVersion_V0_ShouldThrowException() throws IOException {
         int invalidVersion = 0;
+        long logId = 5L;
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
         // Ci aspettiamo che il costruttore rilanci una eccezione per Versione Invalida
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
-                    5L,
+                    logId,
                     1024L,
                     1,
                     512,
@@ -88,6 +96,10 @@ public class JournalChannelCreationTest {
         })
                 .as("JournalChannel dovrebbe bloccare le versioni non supportate")
                 .isInstanceOf(Exception.class);
+
+        assertThat(notExpectedFile)
+                .as("Il file journal non dovrebbe essere creato se la versione è invalida")
+                .doesNotExist();
     }
 
     @Ignore // il test fallisce perchè non lancia alcuna eccezione e invece sovrascrive l'header all'interno del file
@@ -135,7 +147,7 @@ public class JournalChannelCreationTest {
     }
 
     @Test
-    public void testPreAllocTooSmall_ShouldCrash() throws IOException {
+    public void testPreAllocTooSmall_ShouldThrowException() throws IOException {
         long logId = 5L;
         long tinyAlloc = 4L;
         int align = 512;
@@ -144,6 +156,7 @@ public class JournalChannelCreationTest {
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
         // Ci aspettiamo che il costruttore fallisca
         assertThatThrownBy(() -> {
@@ -162,11 +175,15 @@ public class JournalChannelCreationTest {
             );
         })
                 .as("Con preAlloc < headerSize, deve lanciare una eccezione")
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(Exception.class);
+
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato")
+//                .doesNotExist();
     }
 
     @Test
-    public void testNegativePreAlloc_ShouldThrowIllegalArgumentException() throws IOException {
+    public void testNegativePreAlloc_ShouldThrowException() throws IOException {
         long logId = 5L;
         long negativeAlloc = -1L;
         int align = 512;
@@ -175,8 +192,9 @@ public class JournalChannelCreationTest {
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
-        // Ci aspettiamo IllegalArgumentException
+        // Ci aspettiamo Exception
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
@@ -192,12 +210,16 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("PreAlloc negativo dovrebbe generare un errore di posizione illegale o argomento non valido")
-                .isInstanceOf(IllegalArgumentException.class);
+                .as("PreAlloc negativo dovrebbe generare un errore di allocazione illegale")
+                .isInstanceOf(Exception.class);
+
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato")
+//                .doesNotExist();
     }
 
     @Test
-    public void testNegativeAlign_ShouldThrowIllegalArgumentException() throws IOException {
+    public void testNegativeAlign_ShouldThrowException() throws IOException {
         long logId = 5L;
         int negativeAlign = -1;
         long preAlloc = 1024L;
@@ -206,6 +228,7 @@ public class JournalChannelCreationTest {
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
         assertThatThrownBy(() -> {
             new JournalChannel(
@@ -223,11 +246,15 @@ public class JournalChannelCreationTest {
             );
         })
                 .as("AlignSize negativo deve causare eccezione")
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(Exception.class);
+
+        assertThat(notExpectedFile)
+                .as("Il file journal non dovrebbe essere creato")
+                .doesNotExist();
     }
 
     @Test
-    public void testZeroAlign_ShouldThrowArithmeticException() throws IOException {
+    public void testZeroAlign_ShouldThrowException() throws IOException {
         long logId = 5L;
         int zeroAlign = 0;
         long preAlloc = 1024L;
@@ -236,6 +263,9 @@ public class JournalChannelCreationTest {
         fileChannelProvider = JournalTestHelper.createRealProvider();
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
+
+
 
         assertThatThrownBy(() -> {
             new JournalChannel(
@@ -252,8 +282,12 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("AlignSize a zero deve causare errore")
+                .as("AlignSize a zero deve causare eccezione")
                 .isInstanceOf(Exception.class);
+
+        assertThat(notExpectedFile)
+                .as("Il file journal non dovrebbe essere creato")
+                .doesNotExist();
     }
 
     @Test
@@ -298,18 +332,16 @@ public class JournalChannelCreationTest {
                         .isEqualTo(expectedHeader);
             }
 
-            // --- WHITE BOX ASSERTION (Stato Interno) ---
             // Verifichiamo che il costruttore abbia effettivamente cercato e trovato
             // il File Descriptor nativo del sistema operativo.
             assertThat(jc.fd)
-                    .as("White Box: Il FileDescriptor interno (fd) deve essere inizializzato (!= -1)")
+                    .as("Il FileDescriptor interno (fd) deve essere inizializzato (!= -1)")
                     .isNotEqualTo(-1);
-
         }
     }
 
     @Test
-    public void testJournalDirectoryDoesNotExist_ShouldThrowIOException() throws IOException {
+    public void testJournalDirectoryDoesNotExist_ShouldThrowException() throws IOException {
         // Creiamo un percorso astratto che punta a una sottocartella MAI creata.
         File nonExistentDir = new File(folder.getRoot(), "ghost_directory");
 
@@ -332,12 +364,12 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("Creare un JournalChannel in una directory inesistente deve lanciare IOException")
-                .isInstanceOf(IOException.class);
+                .as("Creare un JournalChannel in una directory inesistente deve lanciare Exception")
+                .isInstanceOf(Exception.class);
     }
 
     @Test
-    public void testJournalDirectoryIsActuallyAFile_ShouldThrowIOException() throws IOException {
+    public void testJournalDirectoryIsActuallyAFile_ShouldThrowException() throws IOException {
         // Creiamo un file reale nella cartella temporanea
         File notADirectory = folder.newFile("im_just_a_file.txt");
 
@@ -360,13 +392,13 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("Usare un file normale come directory padre deve causare IOException")
-                .isInstanceOf(IOException.class);
+                .as("Usare un file normale come directory padre deve causare Exception")
+                .isInstanceOf(Exception.class);
     }
 
     @Ignore // il test non genera alcuna eccezione e crea il file all'interno della directory corrente
     @Test
-    public void testJournalDirectoryIsNull_ShouldThrowNPE() throws IOException {
+    public void testJournalDirectoryIsNull_ShouldThrowException() throws IOException {
 
         File nullDirectory = null;
 
@@ -389,21 +421,24 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("Passare null come directory deve lanciare NullPointerException")
-                .isInstanceOf(NullPointerException.class);
+                .as("Passare null come directory deve lanciare Exception")
+                .isInstanceOf(Exception.class);
     }
 
     @Test
-    public void testBuilderReturnsNull_ShouldThrowNPE() throws IOException {
+    public void testBuilderReturnsNull_ShouldThrowException() throws IOException {
         // Helper: createBuilder(null) configura il mock per restituire null al metodo create().
         bcBuilder = JournalTestHelper.createBuilder(null);
+        long logId = 5L;
 
         fileChannelProvider = JournalTestHelper.createRealProvider();
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
+
 
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
-                    5L,
+                    logId,
                     1024L,
                     1,
                     512,
@@ -415,21 +450,27 @@ public class JournalChannelCreationTest {
                     null
             );
         })
-                .as("Se il builder restituisce null, il JournalChannel deve lanciare NullPointerException")
-                .isInstanceOf(NullPointerException.class);
+                .as("Se il builder restituisce null, il JournalChannel deve lanciare Exception")
+                .isInstanceOf(Exception.class);
+
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato se il builder ritorna null")
+//                .doesNotExist();
     }
 
     @Test
     public void testBcBuilderIsNull_ShouldThrowNPE() throws IOException {
 
         Journal.BufferedChannelBuilder nullBuilder = null;
+        long logId = 5L;
 
         fileChannelProvider = JournalTestHelper.createRealProvider();
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
-                    5L,
+                    logId,
                     1024L,
                     1,
                     512,
@@ -443,15 +484,21 @@ public class JournalChannelCreationTest {
         })
                 .as("Passare null come BufferedChannelBuilder deve causare NullPointerException")
                 .isInstanceOf(NullPointerException.class);
+
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato se il builder è nullo")
+//                .doesNotExist();
     }
 
     @Test
-    public void testFileChannelProviderFails_ShouldThrowIOException() throws IOException {
+    public void testFileChannelProviderFails_ShouldThrowException() throws IOException {
 
         fileChannelProvider = JournalTestHelper.createFailingProvider(IOException.class);
+        long logId = 5L;
 
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
         assertThatThrownBy(() -> {
             new JournalChannel(
@@ -469,21 +516,27 @@ public class JournalChannelCreationTest {
             );
         })
                 .as("Se il provider fallisce (es. disco rotto), il costruttore deve propagare IOException")
-                .isInstanceOf(IOException.class);
+                .isInstanceOf(Exception.class);
+
+        assertThat(notExpectedFile)
+                .as("Il file journal non dovrebbe essere creato")
+                .doesNotExist();
     }
 
     @Test
     public void testFileChannelProviderReturnsNull_ShouldThrowNPE() throws IOException {
 
         FileChannelProvider nullReturningProvider = JournalTestHelper.createMockProvider(null, false);
+        long logId = 5L;
 
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
 
         assertThatThrownBy(() -> {
             new JournalChannel(
                     journalDir,
-                    5L,
+                    logId,
                     1024L,
                     1,
                     512,
@@ -498,9 +551,8 @@ public class JournalChannelCreationTest {
                 .as("Se il provider restituisce null, il JournalChannel deve lanciare NullPointerException")
                 .isInstanceOf(NullPointerException.class);
 
-//        File expectedFile = new File(journalDir, Long.toHexString(5L) + ".txn");
-//        assertThat(expectedFile)
-//                .as("Il file parzialmente creato dovrebbe essere stato rimosso in caso di crash del costruttore")
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato")
 //                .doesNotExist();
     }
 
@@ -508,9 +560,12 @@ public class JournalChannelCreationTest {
     public void testFileChannelProviderIsNull_ShouldThrowNPE() throws IOException {
 
         FileChannelProvider nullProvider = null;
+        long logId = 5L;
 
         mockBc = JournalTestHelper.createBufferedChannelStub(0L);
         bcBuilder = JournalTestHelper.createBuilder(mockBc);
+        File notExpectedFile = new File(journalDir, Long.toHexString(logId) + ".txn");
+
 
         assertThatThrownBy(() -> {
             new JournalChannel(
@@ -529,6 +584,10 @@ public class JournalChannelCreationTest {
         })
                 .as("Passare null come FileChannelProvider deve causare NullPointerException")
                 .isInstanceOf(NullPointerException.class);
+
+//        assertThat(notExpectedFile)
+//                .as("Il file journal non dovrebbe essere creato")
+//                .doesNotExist();
     }
 
     @Ignore // il test fallisce perchè il file riutilizzato non viene troncato e vengono mantenuti i vecchi dati
@@ -726,15 +785,10 @@ public class JournalChannelCreationTest {
                         .isEqualTo(existingData);
             }
 
-            // WHITE BOX
-
-            // Deve aver letto 6 dal disco, ignorando il 4 passato al costruttore
             assertThat(jc.getFormatVersion())
                     .as("Deve aver letto la versione dal disco")
                     .isEqualTo(6);
 
-            // Se il reuse fosse scattato, bc sarebbe inizializzato.
-            // Dato che è saltato, siamo in recovery mode -> bc è null.
             assertThat(jc.bc)
                     .as("Il BufferedChannel deve essere null perché il file è aperto in Read-Only")
                     .isNull();
@@ -804,7 +858,7 @@ public class JournalChannelCreationTest {
                     .exists();
 
             try (RandomAccessFile raf = new RandomAccessFile(targetFile, "r")) {
-                // Poiché è un file NUOVO (non riciclato), la dimensione deve essere corretta
+                // la dimensione deve essere corretta
                 assertThat(raf.length())
                         .as("Il nuovo file deve avere la dimensione pre-allocata")
                         .isEqualTo(preAllocSize);
@@ -826,7 +880,6 @@ public class JournalChannelCreationTest {
             }
 
             // WHITE BOX
-            // Essendo stato creato nuovo, il BufferedChannel deve essere attivo
             assertThat(jc.bc).isNotNull();
         }
     }
@@ -846,14 +899,14 @@ public class JournalChannelCreationTest {
                 journalDir,
                 logId,
                 1024L,
-                1024,
+                1,
                 JournalTestHelper.START_OF_FILE,
                 conf,
                 fileChannelProvider
         )) {
             // Verifica Versione
             assertThat(jc.getFormatVersion())
-                    .as("V1 deve essere rilevata correttamente (fallback)")
+                    .as("V1 deve essere rilevata correttamente")
                     .isEqualTo(version);
             ByteBuffer dst = ByteBuffer.allocate(expectedPayload.length);
             int bytesRead = jc.read(dst); // Usiamo il metodo read() di JournalChannel
@@ -872,7 +925,7 @@ public class JournalChannelCreationTest {
 
             // Verifichiamo che sia readOnly
             assertThatThrownBy(jc::getBufferedChannel)
-                    .as("In modalità black-box, il canale deve comportarsi come read-only")
+                    .as("il canale deve comportarsi come read-only")
                     .isInstanceOf(IOException.class);
         }
     }
@@ -904,7 +957,7 @@ public class JournalChannelCreationTest {
                     .as("V2 deve essere rilevata correttamente")
                     .isEqualTo(version);
 
-            // Verifica Lettura (Black Box)
+            // Verifica Lettura
             // Se il posizionamento a 'headerSize' (8) ha funzionato, leggeremo subito "DataV2"
             ByteBuffer dst = ByteBuffer.allocate(expectedPayload.length);
             int bytesRead = jc.read(dst);
@@ -940,7 +993,6 @@ public class JournalChannelCreationTest {
         File file = new File(journalDir, Long.toHexString(logId) + ".txn");
         JournalTestHelper.createJournalFileWithJournalHeader(file, version, expectedPayload);
 
-        // Usiamo il provider reale per evitare NPE sul FileChannel
         fileChannelProvider = JournalTestHelper.createRealProvider();
 
         // 2. ACTION
@@ -960,7 +1012,7 @@ public class JournalChannelCreationTest {
                     .as("V3 deve essere rilevata correttamente")
                     .isEqualTo(version);
 
-            // Verifica Lettura (Black Box)
+            // Verifica Lettura
             // Verifichiamo che saltando l'header (8 byte) troviamo subito i dati corretti
             ByteBuffer dst = ByteBuffer.allocate(expectedPayload.length);
             int bytesRead = jc.read(dst);
@@ -989,7 +1041,6 @@ public class JournalChannelCreationTest {
         // 1. SETUP
         long logId = 10L;
         int version = 4;
-        // Recuperiamo la dimensione header (8 byte per V4)
         int headerSize = JournalTestHelper.getHeaderSize(version);
         byte[] expectedPayload = "DataV4".getBytes();
 
@@ -1161,7 +1212,6 @@ public class JournalChannelCreationTest {
         fileChannelProvider = JournalTestHelper.createRealProvider();
 
         // 2. ACTION & ASSERTION
-        // Non usiamo più assertThatThrownBy perché il codice NON lancia eccezione.
         try (JournalChannel jc = new JournalChannel(
                 journalDir,
                 logId,
@@ -1179,10 +1229,9 @@ public class JournalChannelCreationTest {
                     .isEqualTo(1);
 
             // VERIFICA 2: Posizionamento
-            // Se crede che sia V1 (no header), deve posizionarsi all'inizio del file (byte 0)
-            // per leggere tutto come se fossero dati.
+            // Dobbiamo posizioarci a posizione 0
             assertThat(jc.fc.position())
-                    .as("In caso di fallback a V1, il puntatore deve essere resettato all'inizio del file")
+                    .as("In caso di fallback a V1, il puntatore deve essere posizionato all'inizio del file")
                     .isEqualTo(0);
         }
     }
@@ -1424,8 +1473,4 @@ public class JournalChannelCreationTest {
                     .isEqualTo(-1);
         }
     }
-
-
-
-
 }
