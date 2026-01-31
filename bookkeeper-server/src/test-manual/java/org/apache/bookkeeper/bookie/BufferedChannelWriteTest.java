@@ -287,6 +287,40 @@ public class BufferedChannelWriteTest {
         } else {
             verify(fileChannel, never()).force(anyBoolean());
         }
+
+        // Verifica che il puntatore interno 'writeBufferStartPosition' sia allineato con quanto effettivamente persistito.
+        long expectedFilePos = (expectedFileContent != null) ? expectedFileContent.length : 0;
+        assertThat(bufferedChannel.getFileChannelPosition())
+                .as("Invariante violato: writeBufferStartPosition deve coincidere con la fine dei dati persistiti su file")
+                .isEqualTo(expectedFilePos);
+
+        // Verifica che il contatore 'unpersistedBytes' rifletta esattamente ciò che è rimasto nel buffer.
+        if (expectedException == null) {
+            long expectedUnpersisted;
+
+            // Se UBBound <= 0, la classe BufferedChannel DISABILITA il tracking dei byte non persistiti
+            // (variable doRegularFlushes = false). Quindi il contatore non cambia mai.
+            if (unpersistedBytesBoundParam <= 0) {
+                expectedUnpersisted = unpersistedBytesParam;
+            } else {
+                // Caso in cui il tracking è ATTIVO
+                int bytesWrittenInThisCall = (srcBuffer != null) ? srcBuffer.readableBytes() : 0;
+
+                if (expectedForceCall) {
+                    // Se c'è stata una force(), il contatore viene resettato su quanto rimane nel buffer.
+                    // Nei tuoi test case attuali, dopo una force il buffer è vuoto, quindi 0.
+                    expectedUnpersisted = 0;
+                } else {
+                    // Se NON c'è stata force(), i byte si accumulano.
+                    expectedUnpersisted = unpersistedBytesParam + bytesWrittenInThisCall;
+                }
+            }
+
+            assertThat(bufferedChannel.getUnpersistedBytes())
+                    .as("Invariante violato: unpersistedBytes errato (Bound: %d, Force: %s)",
+                            unpersistedBytesBoundParam, expectedForceCall)
+                    .isEqualTo(expectedUnpersisted);
+        }
     }
 
     private byte[] readFileChannelContent() throws IOException {

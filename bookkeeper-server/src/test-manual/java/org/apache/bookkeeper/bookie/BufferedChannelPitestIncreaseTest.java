@@ -5,7 +5,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.apache.bookkeeper.testutils.FileChannelTestBuilder;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -79,49 +78,6 @@ public class BufferedChannelPitestIncreaseTest {
     }
 
     /**
-     * Uccide il mutante: removed call to java/util/concurrent/atomic/AtomicLong::set (riga 204)
-     * <p>
-     * <strong>Perché il mutante sopravviveva:</strong>
-     * La rimozione dell'aggiornamento di {@code writeBufferStartPosition} dopo il flush non impedisce
-     * la scrittura fisica su disco. Se i test controllano solo il contenuto del file, il test passa.
-     * <p>
-     * <strong>Come lo uccidiamo:</strong>
-     * Scriviamo dei dati nel buffer e forziamo un flush.
-     * Verifichiamo esplicitamente che il puntatore interno {@code writeBufferStartPosition} sia avanzato
-     * per riflettere la nuova posizione del file.
-     * <br>
-     * Se il mutante è vivo, il puntatore rimarrà alla posizione iniziale (0).
-     */
-    @Test
-    public void testFlushShouldUpdateWriteBufferStartPosition() throws IOException {
-        // --- SETUP ---
-        File tempFile = folder.newFile("pitest-flush-" + System.nanoTime() + ".log");
-        // Creiamo un canale pulito a posizione 0
-        fileChannel = FileChannelTestBuilder.aFileChannel()
-                .inReadWriteMode()
-                .build(tempFile.toPath());
-        bufferedChannel = new BufferedChannel(
-                ByteBufAllocator.DEFAULT,
-                fileChannel,
-                100,
-                100,
-                0L
-        );
-        // Dati da scrivere (5 byte)
-        ByteBuf data = Unpooled.wrappedBuffer(new byte[]{1, 2, 3, 4, 5});
-        // --- ACTION ---
-        // Scriviamo nel buffer (questo NON aggiorna ancora writeBufferStartPosition, ma solo writerIndex)
-        bufferedChannel.write(data);
-        // Eseguiamo il flush. Questo scrive su disco e DOVREBBE aggiornare writeBufferStartPosition da 0 a 5.
-        bufferedChannel.flush();
-        // --- VERIFY ---
-        // Verifichiamo che il puntatore interno sia avanzato di 5.
-        assertThat(bufferedChannel.getFileChannelPosition())
-                .as("Dopo il flush, writeBufferStartPosition deve avanzare per coincidere con la file position")
-                .isEqualTo(5L);
-    }
-
-    /**
      * Uccide il mutante alla riga 271: Replaced integer subtraction with addition in (pos - readBufferStartPosition).
      * Perché sopravviveva: Se readBufferStartPosition è 0, pos - 0 == pos + 0.
      * Come lo uccidiamo: Forziamo il readBuffer a caricare dati da una posizione non nulla (es. 10).
@@ -130,7 +86,6 @@ public class BufferedChannelPitestIncreaseTest {
     public void testReadShouldCalculateCorrectPositionInBufferWhenOffsetIsNonZero() throws IOException {
         File tempFile = folder.newFile("pitest-read-offset-final.log");
 
-        // 1. Creiamo un file di 100 byte per avere ampio spazio di manovra
         byte[] content = new byte[100];
         for (int i = 0; i < content.length; i++) {
             content[i] = (byte) i;
@@ -141,7 +96,6 @@ public class BufferedChannelPitestIncreaseTest {
                 .inReadWriteMode()
                 .build(tempFile.toPath());
 
-        // Usiamo capacità molto piccole per forzare gli errori di indice
         int readCap = 10;
         bufferedChannel = new BufferedChannel(
                 ByteBufAllocator.DEFAULT,
@@ -157,22 +111,17 @@ public class BufferedChannelPitestIncreaseTest {
         bufferedChannel.flush();
 
         // 2. Carichiamo il readBuffer alla posizione 40
-        // readBuffer conterrà i byte del file da 40 a 49.
         ByteBuf tempDest = Unpooled.buffer(1);
         bufferedChannel.read(tempDest, 40, 1);
         tempDest.release();
 
         // 3. Lettura Target alla posizione 42
-        // Codice Corretto: 42 - 40 = 2  (Valore atteso: 42)
-        // Codice Mutato:   42 + 40 = 82
         ByteBuf finalDest = Unpooled.buffer(1);
 
         // ACTION
         bufferedChannel.read(finalDest, 42, 1);
 
         // VERIFY
-        // Se il mutante è vivo, cercherà l'indice 82 in un buffer di capacità 10.
-        // Questo DEVE lanciare IndexOutOfBoundsException o leggere un dato casuale.
         assertThat(finalDest.readByte())
                 .as("Il calcolo dell'indice nel buffer deve essere esatto (pos - start)")
                 .isEqualTo((byte) 42);
