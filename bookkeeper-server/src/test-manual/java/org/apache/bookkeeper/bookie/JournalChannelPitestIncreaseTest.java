@@ -20,48 +20,6 @@ public class JournalChannelPitestIncreaseTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void testReuse_ShouldNotifyProviderOfRename_KillMutant() throws IOException {
-        // 1. SETUP
-        long oldLogId = 10L;
-        long newLogId = 1L;
-
-        File oldFile = new File(folder.getRoot(), Long.toHexString(oldLogId) + ".txn");
-        File newFile = new File(folder.getRoot(), Long.toHexString(newLogId) + ".txn");
-
-        // Creiamo il vecchio file affinché il riuso scatti
-        JournalTestHelper.createJournalFileWithJournalHeader(oldFile, 6, "Data".getBytes());
-
-        // SPY Provider: Usiamo uno Spy per monitorare le chiamate ai metodi reali
-        FileChannelProvider spyProvider = spy(JournalTestHelper.createRealProvider());
-        doReturn(true).when(spyProvider).supportReuseFile();
-
-        ServerConfiguration conf = new ServerConfiguration();
-        BufferedChannel mockBc = JournalTestHelper.createBufferedChannelStub(0L);
-        Journal.BufferedChannelBuilder bcBuilder = JournalTestHelper.createBuilder(mockBc);
-
-        try (JournalChannel jc = new JournalChannel(
-                folder.getRoot(),
-                newLogId,
-                1024L,
-                1,
-                512,
-                false,
-                6,
-                bcBuilder,
-                conf,
-                spyProvider, // Iniettiamo lo Spy
-                oldLogId
-        )) {
-            // lo usiamo per autoclosable automatico
-        }
-
-        // 3. ASSERTION (Kill The Mutant)
-        // Se PITest rimuove la riga "provider.notifyRename(...)", questa verifica fallirà.
-        verify(spyProvider, times(1))
-                .notifyRename(eq(oldFile), eq(newFile));
-    }
-
-    @Test
     public void testHeaderAlignment_V6_CheckPositionAtBuilderCreation_KillMutant() throws IOException {
         long logId = 10L;
         int targetVersion = 6; // V6 -> Deve scrivere 512 byte prima di creare il BufferedChannel

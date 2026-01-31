@@ -12,8 +12,7 @@ import java.nio.ByteBuffer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 public class JournalChannelCreationTest {
     @Rule
@@ -732,6 +731,9 @@ public class JournalChannelCreationTest {
                 assertThat(actualHeader).isEqualTo(expectedHeader);
                 assertThat(actualPadding).containsOnly((byte) 0);
             }
+
+            verify(fileChannelProvider, times(1))
+                    .notifyRename(eq(oldFile), eq(newFile));
         }
     }
 

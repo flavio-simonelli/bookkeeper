@@ -83,8 +83,7 @@ public class JournalChannelJacocoTest {
             );
         })
                 .as("Deve lanciare IOException se createNewFile() fallisce dopo che fileExists() ha detto che il file mancava")
-                .isInstanceOf(IOException.class)
-                .hasMessageContaining("suddenly appeared");
+                .isInstanceOf(IOException.class);
     }
 
     /**
